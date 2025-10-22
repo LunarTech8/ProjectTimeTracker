@@ -1,5 +1,6 @@
+import math
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class MetaDataProjectTime:
 	class Field(Enum):
@@ -13,30 +14,14 @@ class MetaDataProjectTime:
 	FIELD_SEPARATOR = ' --- '
 
 	@staticmethod
-	def isDuration(text):
-		# duration format: H:MM:SS or M:SS or S
-		parts = text.split(':')
-		if len(parts) > 3 or len(parts) == 0:
+	def isDuration(text: str) -> bool:
+		try:
+			return math.isfinite(float(text))
+		except Exception:
 			return False
-		for i, part in enumerate(parts):
-			if part == '' or not part.isdigit():
-				return False
-			if i < len(parts)-1 and int(part) < 0:
-				return False
-		return True
 
 	@staticmethod
-	def timeToSeconds(time):
-		assert MetaDataProjectTime.isDuration(time), f'Invalid duration "{time}"'
-		parts = time.split(':')
-		parts = [int(p) for p in parts]
-		while len(parts) < 3:
-			parts.insert(0, 0)
-		hours, minutes, seconds = parts
-		return (hours * 60 + minutes) * 60 + seconds
-
-	@staticmethod
-	def isDatetime(text):
+	def isDatetime(text: str) -> bool:
 		try:
 			datetime.strptime(text, '%Y-%m-%d %H:%M:%S.%f')
 			return True
@@ -44,7 +29,18 @@ class MetaDataProjectTime:
 			return False
 
 	@staticmethod
-	def isValidFieldValue(fieldType, fieldValue):
+	def durationToStr(duration: timedelta) -> str:
+		total_seconds = int(duration.total_seconds())
+		hours = total_seconds // 3600
+		minutes = (total_seconds % 3600) // 60
+		seconds = total_seconds % 60
+		if hours:
+			return f"{hours}:{minutes:02}:{seconds:02}"
+		else:
+			return f"{minutes}:{seconds:02}"
+
+	@staticmethod
+	def isValidFieldValue(fieldType, fieldValue: str) -> bool:
 		if fieldValue is None or MetaDataProjectTime.FIELD_SEPARATOR in fieldValue:
 			return False
 		match fieldType:
@@ -60,7 +56,7 @@ class MetaDataProjectTime:
 				return False
 
 	@staticmethod
-	def getDefaultFieldValue(fieldType):
+	def getDefaultFieldValue(fieldType) -> str:
 		match fieldType:
 			case MetaDataProjectTime.Field.PROJECT:
 				return 'ProjectTimeTracker'
@@ -76,7 +72,7 @@ class MetaDataProjectTime:
 	@staticmethod
 	def getDefaultFieldSets():
 		fieldSets = {}
-		fieldSets[MetaDataProjectTime.Field.PROJECT] = {'FitnessTracker', MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.PROJECT)}
+		fieldSets[MetaDataProjectTime.Field.PROJECT] = {MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.PROJECT)}
 		fieldSets[MetaDataProjectTime.Field.CATEGORY] = {MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.CATEGORY)}
 		return fieldSets
 
@@ -88,31 +84,17 @@ class MetaDataProjectTime:
 	def getFieldTypeName(self, fieldType):
 		return fieldType.name.capitalize().replace('_', ' ')
 
-	def getFieldByIdx(self, fieldType, idx):
-		return self.metaData[idx][fieldType.value]
-
-	def getEntryByIdx(self, idx):
-		return self.metaData[idx]
-
-	def getEntryCount(self):
-		return len(self.metaData)
-
-	def setFieldByIdx(self, fieldType, idx, fieldValue):
-		self.checkField(fieldType, fieldValue)
-		self.metaData[idx][fieldType.value] = fieldValue
-
 	def checkField(self, fieldType, fieldValue):
 		if not MetaDataProjectTime.isValidFieldValue(fieldType, fieldValue):
 			raise ValueError('Invalid formating for ' + self.getFieldTypeName(fieldType) + ' (' + fieldValue + ')')
 		elif fieldType in self.fieldSets:
-			self.fieldSets.get(fieldType).add(fieldValue)
+			self.fieldSets[fieldType].add(fieldValue)
 
 	def checkFields(self, fields):
 		for fieldType in MetaDataProjectTime.Field:
 			self.checkField(fieldType, fields[fieldType.value])
 
 	def addEntry(self, fields):
-		fields[MetaDataProjectTime.Field.START_TIME.value] = str(datetime.now())
 		self.checkFields(fields)
 		self.metaData.append(fields)
 
