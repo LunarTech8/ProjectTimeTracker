@@ -40,7 +40,7 @@ class MetaDataProjectTime:
 			return f"{minutes}:{seconds:02}"
 
 	@staticmethod
-	def isValidFieldValue(fieldType, fieldValue: str) -> bool:
+	def isValidFieldValue(fieldType: 'MetaDataProjectTime.Field', fieldValue: str) -> bool:
 		if fieldValue is None or MetaDataProjectTime.FIELD_SEPARATOR in fieldValue:
 			return False
 		match fieldType:
@@ -56,7 +56,7 @@ class MetaDataProjectTime:
 				return False
 
 	@staticmethod
-	def getDefaultFieldValue(fieldType) -> str:
+	def getDefaultFieldValue(fieldType: 'MetaDataProjectTime.Field') -> str:
 		match fieldType:
 			case MetaDataProjectTime.Field.PROJECT:
 				return 'ProjectTimeTracker'
@@ -70,35 +70,47 @@ class MetaDataProjectTime:
 				return ''
 
 	@staticmethod
-	def getDefaultFieldSets():
-		fieldSets = {}
+	def getDefaultFieldSets() -> dict['MetaDataProjectTime.Field', set[str]]:
+		fieldSets: dict['MetaDataProjectTime.Field', set[str]] = {}
 		fieldSets[MetaDataProjectTime.Field.PROJECT] = {MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.PROJECT)}
 		fieldSets[MetaDataProjectTime.Field.CATEGORY] = {MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.CATEGORY)}
 		return fieldSets
 
-	def __init__(self):
-		self.metaData = []
+	def __init__(self) -> None:
+		self.metaData: list[list[str]] = []
 		self.fieldSets = MetaDataProjectTime.getDefaultFieldSets()
 		self.readMetaData()
 
-	def getFieldTypeName(self, fieldType):
+	def getFieldTypeName(self, fieldType: 'MetaDataProjectTime.Field') -> str:
 		return fieldType.name.capitalize().replace('_', ' ')
 
-	def checkField(self, fieldType, fieldValue):
+	def getFieldByIdx(self, fieldType: 'MetaDataProjectTime.Field', idx: int) -> str:
+		return self.metaData[idx][fieldType.value]
+
+	def getEntryByIdx(self, idx: int) -> list[str]:
+		return self.metaData[idx]
+
+	def getEntryCount(self) -> int:
+		return len(self.metaData)
+
+	def checkField(self, fieldType: 'MetaDataProjectTime.Field', fieldValue: str) -> None:
 		if not MetaDataProjectTime.isValidFieldValue(fieldType, fieldValue):
 			raise ValueError('Invalid formating for ' + self.getFieldTypeName(fieldType) + ' (' + fieldValue + ')')
 		elif fieldType in self.fieldSets:
 			self.fieldSets[fieldType].add(fieldValue)
 
-	def checkFields(self, fields):
+	def checkFields(self, fields: list[str]) -> None:
 		for fieldType in MetaDataProjectTime.Field:
 			self.checkField(fieldType, fields[fieldType.value])
 
-	def addEntry(self, fields):
+	def addEntry(self, fields: list[str]) -> None:
 		self.checkFields(fields)
 		self.metaData.append(fields)
 
-	def readMetaData(self):
+	def removeEntry(self, idx: int) -> None:
+		self.metaData.pop(idx)
+
+	def readMetaData(self) -> None:
 		metaDataFile = open(MetaDataProjectTime.FILE_NAME, 'r', encoding=MetaDataProjectTime.ENCODING)
 		lines = metaDataFile.readlines()
 		self.metaData = []
@@ -107,8 +119,8 @@ class MetaDataProjectTime:
 			self.checkFields(fields)
 			self.metaData.append(fields)
 
-	def writeMetaData(self):
-		metaDataFormated = []
+	def writeMetaData(self) -> None:
+		metaDataFormated: list[str] = []
 		for fields in self.metaData:
 			metaDataFormated.append(MetaDataProjectTime.FIELD_SEPARATOR.join(fields))
 		with open(MetaDataProjectTime.FILE_NAME, 'w', encoding=MetaDataProjectTime.ENCODING) as metaDataFile:
