@@ -90,6 +90,7 @@ class GridField():
 			raise AttributeError('Invalid column type')
 		root.rowconfigure(row, weight=1)
 		root.columnconfigure(column, weight=1)
+		return gridField
 
 	@staticmethod
 	def frameResizeCallback(event: tk.Event) -> None:

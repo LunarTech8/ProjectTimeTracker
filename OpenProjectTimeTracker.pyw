@@ -1,15 +1,27 @@
 import traceback
+import threading
 import tkinter as tk
 from datetime import datetime, timedelta
 from MetaDataProjectTime import MetaDataProjectTime
 from GridField import GridField
+try:
+	import winsound
+except Exception:
+	winsound = None
 
 # Configurables:
 WINDOW_SIZE = (800, 500)
-HEADER_COLUMN_NAMES = ('Control:', 'Project:', 'Category:', 'Current entry time:', 'Total project time:', 'Total category time:', '')
-HEADER_COLUMN_WIDTHS = (10, 10, 20, 20, 20, 20, 20, 3)
-ENTRIES_COLUMN_WIDTHS = (30, 18, 18, 18, 18, 18)
+HEADER_COLUMN_NAMES = ('Control:', 'Reminder:', 'Project:', 'Category:', 'Current entry time:', 'Total project time:', 'Total category time:', '')
+HEADER_COLUMN_WIDTHS = (10, 10, 12, 20, 20, 20, 20, 20, 5)
+ENTRIES_COLUMN_WIDTHS = (37, 17, 17, 17, 17, 17)
 UPDATE_INTERVAL = 1000  # milliseconds
+REMINDER_ALERT_DURATION = 3000  # milliseconds
+REMINDER_BEEP_INTERVAL = 250  # milliseconds
+REMINDER_BEEP_DURATION = 200  # milliseconds
+REMINDER_BEEP_FREQUENCY = 3000  # Hz
+REMINDER_CHOICES_MINUTES = (0, 15, 30, 60, 120)
+REMINDER_FLASH_COLOR = 'blue'
+DEFAULT_COLOR = 'black'
 class BUTTON_NAMES():
 	START = 'Start'
 	PAUSE = 'Pause'
@@ -22,7 +34,6 @@ metaData = MetaDataProjectTime()
 controller = None
 headerFrame = None
 entriesFrame = None
-# TODO: add time reminder after every hour when active (configurable)
 # TODO: add schedulable time pools for categories
 # TODO: add start date as extra column in entries and header
 
@@ -30,6 +41,7 @@ class Controller:
 	def __init__(self, root):
 		self.root = root
 		self.startStopStrVar = tk.StringVar(root, BUTTON_NAMES.START)
+		self.reminderChoiceStrVar = tk.StringVar(root, str(REMINDER_CHOICES_MINUTES[0]))
 		self.projectStrVar = tk.StringVar(root, MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.PROJECT))
 		self.categoryStrVar = tk.StringVar(root, MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.CATEGORY))
 		self.currentEntryDurationStrVar = tk.StringVar(root, MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.DURATION))
@@ -40,6 +52,10 @@ class Controller:
 		self.firstStartTime = None
 		self.currentStartTime = None
 		self.accumulatedDuration = timedelta()
+		self.reminderInterval = 0  # seconds
+		self.nextReminder = 0  # seconds
+		self.alertUntil = datetime.now()
+		self.currentEntryDurationLabel: tk.Label
 
 	def getStartStopVar(self):
 		return self.startStopStrVar
@@ -72,6 +88,8 @@ class Controller:
 			if self.firstStartTime is None:
 				self.firstStartTime = self.currentStartTime
 			self.startStopStrVar.set(BUTTON_NAMES.PAUSE)
+			if self.reminderInterval > 0:
+				self.nextReminder = ((int(self.accumulatedDuration.total_seconds()) // self.reminderInterval) + 1) * self.reminderInterval
 			self.updateCurrentDuration()
 		else:
 			# Pause timer:
@@ -79,6 +97,8 @@ class Controller:
 			self.currentStartTime = None
 			self.startStopStrVar.set(BUTTON_NAMES.RESUME)
 			self.currentEntryDurationStrVar.set(MetaDataProjectTime.durationToStr(self.accumulatedDuration))
+			self.alertUntil = datetime.now()
+			self.currentEntryDurationLabel.configure(fg=DEFAULT_COLOR)
 
 	def endEntry(self):
 		if self.firstStartTime is None:
@@ -92,6 +112,7 @@ class Controller:
 		self.firstStartTime = None
 		self.currentStartTime = None
 		self.accumulatedDuration = timedelta()
+		self.nextReminder = 0
 		self.startStopStrVar.set(BUTTON_NAMES.START)
 		self.currentEntryDurationStrVar.set(MetaDataProjectTime.durationToStr(self.accumulatedDuration))
 		# Update UI:
@@ -99,12 +120,51 @@ class Controller:
 		self.updateTotalDurations()
 		createEntriesFrameGridFields()
 
+	def doBeep(self):
+		if winsound is not None:
+			winsound.Beep(REMINDER_BEEP_FREQUENCY, min(REMINDER_BEEP_DURATION, REMINDER_BEEP_INTERVAL))
+		else:
+			self.root.bell()
+
+	def alertTick(self):
+		# Check if alert time is over:
+		if datetime.now() >= self.alertUntil:
+			self.currentEntryDurationLabel.configure(fg=DEFAULT_COLOR)
+			return
+		# Toggle label color and beep:
+		newForeground = REMINDER_FLASH_COLOR if self.currentEntryDurationLabel.cget('fg') != REMINDER_FLASH_COLOR else DEFAULT_COLOR
+		self.currentEntryDurationLabel.configure(fg=newForeground)
+		threading.Thread(target=self.doBeep, daemon=True).start()
+		# Schedule next tick:
+		self.root.after(REMINDER_BEEP_INTERVAL, self.alertTick)
+
+	def parseReminderChoice(self, value: str) -> int:
+		try:
+			return int(max(0, float(value)) * 60)
+		except Exception:
+			return 0
+
+	def updateReminderChoice(self):
+		self.reminderInterval = self.parseReminderChoice(self.reminderChoiceStrVar.get())
+		if self.reminderInterval == 0:
+			self.nextReminder = 0
+			self.alertUntil = datetime.now()
+			self.currentEntryDurationLabel.configure(fg=DEFAULT_COLOR)
+		elif self.currentStartTime is not None:
+			self.nextReminder = ((int((datetime.now() - self.currentStartTime + self.accumulatedDuration).total_seconds()) // self.reminderInterval) + 1) * self.reminderInterval
+
 	def updateCurrentDuration(self):
 		if self.currentStartTime is None:
 			return
 		# Update labels:
 		self.currentEntryDurationStrVar.set(MetaDataProjectTime.durationToStr(datetime.now() - self.currentStartTime + self.accumulatedDuration))
 		self.updateTotalDurations()
+		# Check for reminder alert:
+		if self.nextReminder > 0 and self.reminderInterval > 0 and int((datetime.now() - self.currentStartTime + self.accumulatedDuration).total_seconds()) >= self.nextReminder:
+			if datetime.now() >= self.alertUntil:
+				self.alertUntil = datetime.now() + timedelta(milliseconds=REMINDER_ALERT_DURATION)
+				self.alertTick()
+			self.nextReminder += self.reminderInterval
 		# Schedule next update:
 		self.root.after(UPDATE_INTERVAL, self.updateCurrentDuration)
 
@@ -194,11 +254,13 @@ def createHeaderFrameGridFields():
 	column += 1
 	GridField.add(headerFrame, row, column, HEADER_COLUMN_WIDTHS[column], GridField.Type.Button, BUTTON_NAMES.END, controller.endEntry, False)
 	column += 1
+	GridField.add(headerFrame, row, column, HEADER_COLUMN_WIDTHS[column], GridField.Type.Combobox, controller.reminderChoiceStrVar, [str(choice) for choice in REMINDER_CHOICES_MINUTES], lambda *_, controller=controller: controller.updateReminderChoice())
+	column += 1
 	GridField.add(headerFrame, row, column, HEADER_COLUMN_WIDTHS[column], GridField.Type.Combobox, controller.getProjectVar(), controller.getSortedProjects(), lambda *_, controller=controller: controller.updateTotalDurations())
 	column += 1
 	GridField.add(headerFrame, row, column, HEADER_COLUMN_WIDTHS[column], GridField.Type.Combobox, controller.getCategoryVar(), controller.getSortedCategories(), lambda *_, controller=controller: controller.updateTotalDurations())
 	column += 1
-	GridField.add(headerFrame, row, column, HEADER_COLUMN_WIDTHS[column], GridField.Type.DynamicLabel, controller.getCurrentEntryDurationStrVar())
+	controller.currentEntryDurationLabel = GridField.add(headerFrame, row, column, HEADER_COLUMN_WIDTHS[column], GridField.Type.DynamicLabel, controller.getCurrentEntryDurationStrVar())  # type: ignore
 	column += 1
 	GridField.add(headerFrame, row, column, HEADER_COLUMN_WIDTHS[column], GridField.Type.DynamicLabel, controller.getTotalProjectDurationStrVar())
 	column += 1
