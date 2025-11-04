@@ -10,10 +10,10 @@ except Exception:
 	winsound = None
 
 # Configurables:
-WINDOW_SIZE = (800, 500)
-HEADER_COLUMN_NAMES = ('Control:', 'Reminder:', 'Project:', 'Category:', 'Current entry time:', 'Total project time:', 'Total category time:', '')
-HEADER_COLUMN_WIDTHS = (10, 10, 12, 20, 20, 20, 20, 20, 5)
-ENTRIES_COLUMN_WIDTHS = (37, 17, 17, 17, 17, 17)
+WINDOW_SIZE = (900, 300)
+HEADER_COLUMN_NAMES = ('Control:', 'Reminder:', 'Project:', 'Category:', 'Current entry time:', 'Total project time:', 'Total category time:', 'Start date:', '')
+HEADER_COLUMN_WIDTHS = (10, 10, 12, 20, 20, 20, 20, 20, 20, 5)
+ENTRIES_COLUMN_WIDTHS = (36, 16, 16, 16, 16, 16, 16)
 UPDATE_INTERVAL = 1000  # milliseconds
 REMINDER_ALERT_DURATION = 3000  # milliseconds
 REMINDER_BEEP_INTERVAL = 250  # milliseconds
@@ -22,6 +22,7 @@ REMINDER_BEEP_FREQUENCY = 3000  # Hz
 REMINDER_CHOICES_MINUTES = (0, 15, 30, 60, 120)
 REMINDER_FLASH_COLOR = 'blue'
 DEFAULT_COLOR = 'black'
+DATETIME_DISPLAY_FORMAT = '%H:%M %d.%m.%Y'
 class BUTTON_NAMES():
 	START = 'Start'
 	PAUSE = 'Pause'
@@ -35,7 +36,7 @@ controller = None
 headerFrame = None
 entriesFrame = None
 # TODO: add schedulable time pools for categories
-# TODO: add start date as extra column in entries and header
+# TODO: finder better system to make header and entries columns widths the same
 
 class Controller:
 	def __init__(self, root):
@@ -47,14 +48,15 @@ class Controller:
 		self.currentEntryDurationStrVar = tk.StringVar(root, MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.DURATION))
 		self.totalProjectDurationStrVar = tk.StringVar(root, MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.DURATION))
 		self.totalCategoryDurationStrVar = tk.StringVar(root, MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.DURATION))
+		self.startDatetimeStrVar = tk.StringVar(root, MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.START_TIME))
 		self.sortedProjects = []
 		self.sortedCategories = []
-		self.firstStartTime = None
-		self.currentStartTime = None
+		self.firstStartDatetime = None
+		self.currentStartDatetime = None
 		self.accumulatedDuration = timedelta()
 		self.reminderInterval = 0  # seconds
 		self.nextReminder = 0  # seconds
-		self.alertUntil = datetime.now()
+		self.alertUntilDatetime = datetime.now()
 		self.currentEntryDurationLabel: tk.Label
 
 	def getStartStopVar(self):
@@ -75,6 +77,9 @@ class Controller:
 	def getTotalCategoryDurationStrVar(self):
 		return self.totalCategoryDurationStrVar
 
+	def getStartDatetimeStrVar(self):
+		return self.startDatetimeStrVar
+
 	def getSortedProjects(self):
 		return self.sortedProjects
 
@@ -82,39 +87,41 @@ class Controller:
 		return self.sortedCategories
 
 	def startStopEntry(self):
-		if self.currentStartTime is None:
+		if self.currentStartDatetime is None:
 			# Start or resume timer:
-			self.currentStartTime = datetime.now()
-			if self.firstStartTime is None:
-				self.firstStartTime = self.currentStartTime
+			self.currentStartDatetime = datetime.now()
+			if self.firstStartDatetime is None:
+				self.firstStartDatetime = self.currentStartDatetime
+				self.startDatetimeStrVar.set(self.firstStartDatetime.strftime(DATETIME_DISPLAY_FORMAT))
 			self.startStopStrVar.set(BUTTON_NAMES.PAUSE)
 			if self.reminderInterval > 0:
 				self.nextReminder = ((int(self.accumulatedDuration.total_seconds()) // self.reminderInterval) + 1) * self.reminderInterval
 			self.updateCurrentDuration()
 		else:
 			# Pause timer:
-			self.accumulatedDuration += datetime.now() - self.currentStartTime
-			self.currentStartTime = None
+			self.accumulatedDuration += datetime.now() - self.currentStartDatetime
+			self.currentStartDatetime = None
 			self.startStopStrVar.set(BUTTON_NAMES.RESUME)
 			self.currentEntryDurationStrVar.set(MetaDataProjectTime.durationToStr(self.accumulatedDuration))
-			self.alertUntil = datetime.now()
+			self.alertUntilDatetime = datetime.now()
 			self.currentEntryDurationLabel.configure(fg=DEFAULT_COLOR)
 
 	def endEntry(self):
-		if self.firstStartTime is None:
+		if self.firstStartDatetime is None:
 			return
 		# Store current entry:
-		if self.currentStartTime is not None:
-			self.accumulatedDuration += datetime.now() - self.currentStartTime
-		metaData.addEntry([self.projectStrVar.get(), self.categoryStrVar.get(), str(self.accumulatedDuration.total_seconds()), str(self.firstStartTime)])
+		if self.currentStartDatetime is not None:
+			self.accumulatedDuration += datetime.now() - self.currentStartDatetime
+		metaData.addEntry([self.projectStrVar.get(), self.categoryStrVar.get(), str(self.accumulatedDuration.total_seconds()), str(self.firstStartDatetime)])
 		metaData.writeMetaData()
 		# Reset current entry state:
-		self.firstStartTime = None
-		self.currentStartTime = None
+		self.firstStartDatetime = None
+		self.currentStartDatetime = None
 		self.accumulatedDuration = timedelta()
 		self.nextReminder = 0
 		self.startStopStrVar.set(BUTTON_NAMES.START)
 		self.currentEntryDurationStrVar.set(MetaDataProjectTime.durationToStr(self.accumulatedDuration))
+		self.startDatetimeStrVar.set(MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.START_TIME))
 		# Update UI:
 		self.updateSortedProjectsAndCategories()
 		self.updateTotalDurations()
@@ -128,7 +135,7 @@ class Controller:
 
 	def alertTick(self):
 		# Check if alert time is over:
-		if datetime.now() >= self.alertUntil:
+		if datetime.now() >= self.alertUntilDatetime:
 			self.currentEntryDurationLabel.configure(fg=DEFAULT_COLOR)
 			return
 		# Toggle label color and beep:
@@ -148,21 +155,21 @@ class Controller:
 		self.reminderInterval = self.parseReminderChoice(self.reminderChoiceStrVar.get())
 		if self.reminderInterval == 0:
 			self.nextReminder = 0
-			self.alertUntil = datetime.now()
+			self.alertUntilDatetime = datetime.now()
 			self.currentEntryDurationLabel.configure(fg=DEFAULT_COLOR)
-		elif self.currentStartTime is not None:
-			self.nextReminder = ((int((datetime.now() - self.currentStartTime + self.accumulatedDuration).total_seconds()) // self.reminderInterval) + 1) * self.reminderInterval
+		elif self.currentStartDatetime is not None:
+			self.nextReminder = ((int((datetime.now() - self.currentStartDatetime + self.accumulatedDuration).total_seconds()) // self.reminderInterval) + 1) * self.reminderInterval
 
 	def updateCurrentDuration(self):
-		if self.currentStartTime is None:
+		if self.currentStartDatetime is None:
 			return
 		# Update labels:
-		self.currentEntryDurationStrVar.set(MetaDataProjectTime.durationToStr(datetime.now() - self.currentStartTime + self.accumulatedDuration))
+		self.currentEntryDurationStrVar.set(MetaDataProjectTime.durationToStr(datetime.now() - self.currentStartDatetime + self.accumulatedDuration))
 		self.updateTotalDurations()
 		# Check for reminder alert:
-		if self.nextReminder > 0 and self.reminderInterval > 0 and int((datetime.now() - self.currentStartTime + self.accumulatedDuration).total_seconds()) >= self.nextReminder:
-			if datetime.now() >= self.alertUntil:
-				self.alertUntil = datetime.now() + timedelta(milliseconds=REMINDER_ALERT_DURATION)
+		if self.nextReminder > 0 and self.reminderInterval > 0 and int((datetime.now() - self.currentStartDatetime + self.accumulatedDuration).total_seconds()) >= self.nextReminder:
+			if datetime.now() >= self.alertUntilDatetime:
+				self.alertUntilDatetime = datetime.now() + timedelta(milliseconds=REMINDER_ALERT_DURATION)
 				self.alertTick()
 			self.nextReminder += self.reminderInterval
 		# Schedule next update:
@@ -171,8 +178,8 @@ class Controller:
 	def updateTotalDurations(self):
 		# Start total durations at current entry duration:
 		current_entry_duration = self.accumulatedDuration
-		if self.currentStartTime is not None:
-			current_entry_duration += (datetime.now() - self.currentStartTime)
+		if self.currentStartDatetime is not None:
+			current_entry_duration += (datetime.now() - self.currentStartDatetime)
 		total_project_duration = current_entry_duration
 		total_category_duration = current_entry_duration
 		# Add durations from stored entries:
@@ -212,7 +219,7 @@ class EntriesList:
 		self.entryIdxList.clear()
 		for idx in range(metaData.getEntryCount()):
 			self.entryIdxList.append(idx)
-		self.entryIdxList.sort(key=lambda entryIdx: datetime.strptime(metaData.getFieldByIdx(MetaDataProjectTime.Field.START_TIME, entryIdx), '%Y-%m-%d %H:%M:%S.%f'), reverse=True)
+		self.entryIdxList.sort(key=lambda entryIdx: datetime.strptime(metaData.getFieldByIdx(MetaDataProjectTime.Field.START_TIME, entryIdx), MetaDataProjectTime.DATETIME_SAVE_FORMAT), reverse=True)
 
 	def removeEntryByIdx(self, idx):
 		assert controller is not None
@@ -265,6 +272,8 @@ def createHeaderFrameGridFields():
 	GridField.add(headerFrame, row, column, HEADER_COLUMN_WIDTHS[column], GridField.Type.DynamicLabel, controller.getTotalProjectDurationStrVar())
 	column += 1
 	GridField.add(headerFrame, row, column, HEADER_COLUMN_WIDTHS[column], GridField.Type.DynamicLabel, controller.getTotalCategoryDurationStrVar())
+	column += 1
+	GridField.add(headerFrame, row, column, HEADER_COLUMN_WIDTHS[column], GridField.Type.DynamicLabel, controller.getStartDatetimeStrVar())
 
 def createEntriesFrameGridFields():
 	assert entriesFrame is not None
@@ -289,6 +298,8 @@ def createEntriesFrameGridFields():
 		GridField.add(entriesFrame, row, column, ENTRIES_COLUMN_WIDTHS[column], GridField.Type.Label, MetaDataProjectTime.durationToStr(total_project))
 		column += 1
 		GridField.add(entriesFrame, row, column, ENTRIES_COLUMN_WIDTHS[column], GridField.Type.Label, MetaDataProjectTime.durationToStr(total_category))
+		column += 1
+		GridField.add(entriesFrame, row, column, ENTRIES_COLUMN_WIDTHS[column], GridField.Type.Label, datetime.strptime(metaData.getFieldByIdx(MetaDataProjectTime.Field.START_TIME, entryIdx), MetaDataProjectTime.DATETIME_SAVE_FORMAT).strftime(DATETIME_DISPLAY_FORMAT))
 
 def createControlWindow(root):
 	global headerFrame

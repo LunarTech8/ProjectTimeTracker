@@ -12,6 +12,7 @@ class MetaDataProjectTime:
 	ENCODING = 'utf-8'
 	FILE_NAME = 'MetaDataProjectTime.txt'
 	FIELD_SEPARATOR = ' --- '
+	DATETIME_SAVE_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
 
 	@staticmethod
 	def isDuration(text: str) -> bool:
@@ -23,7 +24,7 @@ class MetaDataProjectTime:
 	@staticmethod
 	def isDatetime(text: str) -> bool:
 		try:
-			datetime.strptime(text, '%Y-%m-%d %H:%M:%S.%f')
+			datetime.strptime(text, MetaDataProjectTime.DATETIME_SAVE_FORMAT)
 			return True
 		except Exception:
 			return False
@@ -65,7 +66,7 @@ class MetaDataProjectTime:
 			case MetaDataProjectTime.Field.DURATION:
 				return '0:00'
 			case MetaDataProjectTime.Field.START_TIME:
-				return '2000-01-01 0:00:00.0'
+				return '-'
 			case _:
 				return ''
 
