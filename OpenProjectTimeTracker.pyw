@@ -12,17 +12,21 @@ except Exception:
 	winsound = None
 
 # Configurables:
-DAILY_TIME_POOLS = {'Programming': 0.5, 'Television': 1.0, 'Gaming': 1.0, 'Art': 0.2}  # hours
+DAILY_TIME_POOLS = {'Programming': 30, 'Television': 60, 'Gaming': 60, 'Art': 10}  # minutes
+DAILY_TIME_POOL_CHOICES = (5, 10, 15, 30, 45, 60, 90, 120)  # minutes
 WINDOW_SIZE = (1000, 300)
 HEADER_COLUMN_NAMES = ('Control:', 'Reminder:', 'Project:', 'Category:', 'Current entry time:', 'Total project time:', 'Total category time:', 'Category pool time:', 'Start date:', '')
 HEADER_COLUMN_WIDTHS = (10, 10, 12, 20, 20, 20, 20, 20, 20, 20, 5)
 ENTRIES_COLUMN_WIDTHS = (26, 8, 16, 16, 16, 16, 16, 16, 16)
+CATEGORY_POOLS_WINDOW_SIZE = (500, 200)
+CATEGORY_POOLS_COLUMN_NAMES = ('Name:', 'Daily time:', 'Pool time:', 'Total time:', '')
+CATEGORY_POOLS_COLUMN_WIDTHS = (22, 16, 16, 16, 3)  # TODO: adjust widths
 UPDATE_INTERVAL = 1000  # milliseconds
 REMINDER_ALERT_DURATION = 3000  # milliseconds
 REMINDER_BEEP_INTERVAL = 250  # milliseconds
 REMINDER_BEEP_DURATION = 200  # milliseconds
 REMINDER_BEEP_FREQUENCY = 3000  # Hz
-REMINDER_CHOICES_MINUTES = (0, 15, 30, 60, 120)
+REMINDER_INTERVAL_CHOICES = (0, 15, 30, 60, 120)  # minutes
 REMINDER_FLASH_COLOR = 'blue'
 POOL_TIME_NEGATIVE_COLOR = 'red'
 POOL_TIME_POSITIVE_COLOR = 'green'
@@ -40,15 +44,18 @@ metaData = MetaDataProjectTime()
 controller = None
 headerFrame = None
 entriesFrame = None
+categoryPoolsWindow: Optional['CategoryPoolsWindow'] = None
 # TODO: finder better system to make header and entries columns widths the same
-# TODO: add extra window for the category time pools with columns: Name, Daily Time (dropdown), Pool Time, Total Time
 # TODO: improve shown columns in control/entries list
+# TODO: use type hints throughout the code
+# TODO: store categories and daily time pools in extra file instead of DAILY_TIME_POOLS
+# TODO: allow new categories to be added to categoryPoolsWindow via the UI
 
 class Controller:
 	def __init__(self, root):
 		self.root = root
 		self.startStopStrVar = tk.StringVar(root, BUTTON_NAMES.START)
-		self.reminderChoiceStrVar = tk.StringVar(root, str(REMINDER_CHOICES_MINUTES[0]))
+		self.reminderChoiceStrVar = tk.StringVar(root, str(REMINDER_INTERVAL_CHOICES[0]))
 		self.projectStrVar = tk.StringVar(root, MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.PROJECT))
 		self.categoryStrVar = tk.StringVar(root, MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.CATEGORY))
 		self.currentEntryDurationStrVar = tk.StringVar(root, MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.DURATION))
@@ -137,6 +144,7 @@ class Controller:
 		# Update UI:
 		self.updateSortedProjectsAndCategories()
 		self.updateTotalDurations()
+		self.updatePoolTime()
 		createEntriesFrameGridFields()
 
 	def doBeep(self):
@@ -157,14 +165,8 @@ class Controller:
 		# Schedule next tick:
 		self.root.after(REMINDER_BEEP_INTERVAL, self.alertTick)
 
-	def parseReminderChoice(self, value: str) -> int:
-		try:
-			return int(max(0, float(value)) * 60)
-		except Exception:
-			return 0
-
 	def updateReminderChoice(self):
-		self.reminderInterval = self.parseReminderChoice(self.reminderChoiceStrVar.get())
+		self.reminderInterval = parseInt(self.reminderChoiceStrVar.get()) * 60
 		if self.reminderInterval == 0:
 			self.nextReminder = 0
 			self.alertUntilDatetime = datetime.now()
@@ -258,6 +260,7 @@ class EntriesList:
 		# Update UI:
 		controller.updateSortedProjectsAndCategories()
 		controller.updateTotalDurations()
+		controller.updatePoolTime()
 		createEntriesFrameGridFields()
 
 	def calculatePoolTimeString(self, category):
@@ -266,6 +269,68 @@ class EntriesList:
 		else:
 			return MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.START_TIME)
 
+
+class CategoryPoolsWindow:  # TODO: check and refactor
+	def __init__(self, root: tk.Tk, headerFrame: tk.Frame, entriesFrame: tk.Frame):
+		self.root = root
+		self.headerFrame = headerFrame
+		self.entriesFrame = entriesFrame
+		self.createHeader()
+		self.createRows()
+
+	def getPoolTimeText(self, category: str) -> str:  # TODO: refactor, should be similar to how its done for controller.getPoolTimeStrVar()
+		if remaining := calculateRemainingPoolSeconds(category):
+			return ('-' if remaining < 0 else '') + MetaDataProjectTime.durationToStr(timedelta(seconds=abs(remaining)))
+		else:
+			return MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.START_TIME)
+
+	def getTotalTimeText(self, category: str) -> str:  # TODO: refactor, should be similar to how its done for controller.getTotalCategoryDurationStrVar()
+		totalSeconds = 0.0
+		for idx in range(metaData.getEntryCount()):
+			if metaData.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx) == category:
+				totalSeconds += float(metaData.getFieldByIdx(MetaDataProjectTime.Field.DURATION, idx))
+		if controller is not None and controller.currentStartDatetime is not None and controller.getCategoryVar().get() == category:
+			totalSeconds += (datetime.now() - controller.currentStartDatetime + controller.accumulatedDuration).total_seconds()
+		return MetaDataProjectTime.durationToStr(timedelta(seconds=totalSeconds))
+
+	def createHeader(self):
+		for column, name in enumerate(CATEGORY_POOLS_COLUMN_NAMES):
+			GridField.add(self.headerFrame, 0, column, CATEGORY_POOLS_COLUMN_WIDTHS[column], GridField.Type.Header, name)
+
+	def createRows(self):
+		categories = set(DAILY_TIME_POOLS.keys())
+		for idx in range(metaData.getEntryCount()):
+			categories.add(metaData.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx))
+		for rowIndex, category in enumerate(sorted(categories)):
+			GridField.add(self.entriesFrame, rowIndex, 0, CATEGORY_POOLS_COLUMN_WIDTHS[0], GridField.Type.Label, category)
+			dailyTimeStrVar = tk.StringVar(self.root, str(DAILY_TIME_POOLS.get(category, 0)))
+			combobox = GridField.add(self.entriesFrame, rowIndex, 1, CATEGORY_POOLS_COLUMN_WIDTHS[1], GridField.Type.Combobox, dailyTimeStrVar, DAILY_TIME_POOL_CHOICES)
+			combobox.bind('<<ComboboxSelected>>', lambda *_ , category=category, dailyTimeStrVar=dailyTimeStrVar: self.onDailyTimeChanged(category, dailyTimeStrVar))
+			GridField.add(self.entriesFrame, rowIndex, 2, CATEGORY_POOLS_COLUMN_WIDTHS[2], GridField.Type.Label, self.getPoolTimeText(category))
+			GridField.add(self.entriesFrame, rowIndex, 3, CATEGORY_POOLS_COLUMN_WIDTHS[3], GridField.Type.Label, self.getTotalTimeText(category))
+
+	def refresh(self):
+		for widget in self.entriesFrame.winfo_children():
+			widget.destroy()
+		self.createRows()
+
+	def onDailyTimeChanged(self, category: str, dailyTimeStrVar: tk.StringVar):
+		dailyTime = parseInt(dailyTimeStrVar.get())
+		if dailyTime == DAILY_TIME_POOLS.get(category, 0):
+			return
+		DAILY_TIME_POOLS[category] = dailyTime
+		if controller is not None:
+			controller.updatePoolTime()
+		if entriesFrame is not None:
+			createEntriesFrameGridFields()
+		self.refresh()
+
+
+def parseInt(value: str) -> int:  # FIXME: check why this does not allow for new values
+	try:
+		return int(max(0, float(value)))
+	except Exception:
+		return 0
 
 def calculateTotalDurations(project: str, category: str) -> tuple[timedelta, timedelta]:
 	totalProjectDuration = timedelta()
@@ -289,7 +354,7 @@ def calculateRemainingPoolSeconds(category: str, usedSeconds: float = 0.0) -> Op
 				firstDatetime = entryDatetime
 			usedSeconds += float(metaData.getFieldByIdx(MetaDataProjectTime.Field.DURATION, idx))
 	# Return daily pool time sum minus used time:
-	return timedelta(hours=DAILY_TIME_POOLS[category] * ((datetime.now().date() - firstDatetime.date()).days + 1)).total_seconds() - usedSeconds
+	return timedelta(minutes=DAILY_TIME_POOLS[category] * ((datetime.now().date() - firstDatetime.date()).days + 1)).total_seconds() - usedSeconds
 
 def createHeaderFrameGridFields():
 	global controller
@@ -311,7 +376,7 @@ def createHeaderFrameGridFields():
 	column += 1
 	GridField.add(headerFrame, row, column, HEADER_COLUMN_WIDTHS[column], GridField.Type.Button, BUTTON_NAMES.END, controller.endEntry, False)
 	column += 1
-	GridField.add(headerFrame, row, column, HEADER_COLUMN_WIDTHS[column], GridField.Type.Combobox, controller.reminderChoiceStrVar, [str(choice) for choice in REMINDER_CHOICES_MINUTES], lambda *_, controller=controller: controller.updateReminderChoice())
+	GridField.add(headerFrame, row, column, HEADER_COLUMN_WIDTHS[column], GridField.Type.Combobox, controller.reminderChoiceStrVar, [str(choice) for choice in REMINDER_INTERVAL_CHOICES], lambda *_, controller=controller: controller.updateReminderChoice())
 	column += 1
 	controller.projectCombobox = GridField.add(headerFrame, row, column, HEADER_COLUMN_WIDTHS[column], GridField.Type.Combobox, controller.getProjectVar(), controller.getSortedProjects(), lambda *_, controller=controller: (controller.updateTotalDurations(), controller.updatePoolTime()))  # type: ignore
 	column += 1
@@ -358,6 +423,26 @@ def createEntriesFrameGridFields():
 		column += 1
 		GridField.add(entriesFrame, row, column, ENTRIES_COLUMN_WIDTHS[column], GridField.Type.Label, datetime.strptime(metaData.getFieldByIdx(MetaDataProjectTime.Field.START_TIME, entryIdx), MetaDataProjectTime.DATETIME_SAVE_FORMAT).strftime(DATETIME_DISPLAY_FORMAT))
 
+
+def createCategoryPoolsWindow(root):
+	global categoryPoolsWindow
+	root.title('Category time pools')
+	root.geometry(str(CATEGORY_POOLS_WINDOW_SIZE[0]) + 'x' + str(CATEGORY_POOLS_WINDOW_SIZE[1]))
+	root.resizable(0, 1)
+	outerFrame = tk.Frame(root)
+	outerFrame.pack(fill=tk.BOTH, expand=1)
+	headerFrame = tk.Frame(outerFrame)
+	headerFrame.pack(side=tk.TOP, fill=tk.X, expand=0)
+	entriesCanvas = tk.Canvas(outerFrame)
+	entriesCanvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+	entriesScrollbar = tk.Scrollbar(outerFrame, orient=tk.VERTICAL, command=entriesCanvas.yview)
+	entriesScrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+	entriesCanvas.configure(yscrollcommand=entriesScrollbar.set)
+	entriesCanvas.bind('<Configure>', lambda _: entriesCanvas.configure(scrollregion=entriesCanvas.bbox('all')))
+	entriesFrame = tk.Frame(entriesCanvas)
+	entriesCanvas.create_window((0, 0), window=entriesFrame, anchor='nw')
+	categoryPoolsWindow = CategoryPoolsWindow(root, headerFrame, entriesFrame)
+
 def createControlWindow(root):
 	global headerFrame
 	global entriesFrame
@@ -383,6 +468,7 @@ def createControlWindow(root):
 def main():
 	try:
 		createControlWindow(tk.Tk())
+		createCategoryPoolsWindow(tk.Tk())
 		tk.mainloop()
 	except Exception:
 		print(traceback.format_exc())
