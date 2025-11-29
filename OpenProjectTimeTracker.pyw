@@ -270,49 +270,33 @@ class EntriesList:
 			return MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.START_TIME)
 
 
-class CategoryPoolsWindow:  # TODO: check and refactor
+class CategoryPoolsWindow:
 	def __init__(self, root: tk.Tk, headerFrame: tk.Frame, entriesFrame: tk.Frame):
 		self.root = root
 		self.headerFrame = headerFrame
 		self.entriesFrame = entriesFrame
-		self.createHeader()
-		self.createRows()
+		self.poolTimeStrVars: dict[str, tk.StringVar] = {}
+		self.totalTimeStrVars: dict[str, tk.StringVar] = {}
 
-	def getPoolTimeText(self, category: str) -> str:  # TODO: refactor, should be similar to how its done for controller.getPoolTimeStrVar()
+	def updatePoolTime(self, category: str):
 		if remaining := calculateRemainingPoolSeconds(category):
-			return ('-' if remaining < 0 else '') + MetaDataProjectTime.durationToStr(timedelta(seconds=abs(remaining)))
+			self.poolTimeStrVars[category].set(('-' if remaining < 0 else '') + MetaDataProjectTime.durationToStr(timedelta(seconds=abs(remaining))))
 		else:
-			return MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.START_TIME)
+			self.poolTimeStrVars[category].set(MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.START_TIME))
 
-	def getTotalTimeText(self, category: str) -> str:  # TODO: refactor, should be similar to how its done for controller.getTotalCategoryDurationStrVar()
+	def updateTotalTime(self, category: str):
 		totalSeconds = 0.0
 		for idx in range(metaData.getEntryCount()):
 			if metaData.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx) == category:
 				totalSeconds += float(metaData.getFieldByIdx(MetaDataProjectTime.Field.DURATION, idx))
 		if controller is not None and controller.currentStartDatetime is not None and controller.getCategoryVar().get() == category:
 			totalSeconds += (datetime.now() - controller.currentStartDatetime + controller.accumulatedDuration).total_seconds()
-		return MetaDataProjectTime.durationToStr(timedelta(seconds=totalSeconds))
+		self.totalTimeStrVars[category].set(MetaDataProjectTime.durationToStr(timedelta(seconds=totalSeconds)))
 
-	def createHeader(self):
-		for column, name in enumerate(CATEGORY_POOLS_COLUMN_NAMES):
-			GridField.add(self.headerFrame, 0, column, CATEGORY_POOLS_COLUMN_WIDTHS[column], GridField.Type.Header, name)
-
-	def createRows(self):
-		categories = set(DAILY_TIME_POOLS.keys())
-		for idx in range(metaData.getEntryCount()):
-			categories.add(metaData.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx))
-		for rowIndex, category in enumerate(sorted(categories)):
-			GridField.add(self.entriesFrame, rowIndex, 0, CATEGORY_POOLS_COLUMN_WIDTHS[0], GridField.Type.Label, category)
-			dailyTimeStrVar = tk.StringVar(self.root, str(DAILY_TIME_POOLS.get(category, 0)))
-			combobox = GridField.add(self.entriesFrame, rowIndex, 1, CATEGORY_POOLS_COLUMN_WIDTHS[1], GridField.Type.Combobox, dailyTimeStrVar, DAILY_TIME_POOL_CHOICES)
-			combobox.bind('<<ComboboxSelected>>', lambda *_ , category=category, dailyTimeStrVar=dailyTimeStrVar: self.onDailyTimeChanged(category, dailyTimeStrVar))
-			GridField.add(self.entriesFrame, rowIndex, 2, CATEGORY_POOLS_COLUMN_WIDTHS[2], GridField.Type.Label, self.getPoolTimeText(category))
-			GridField.add(self.entriesFrame, rowIndex, 3, CATEGORY_POOLS_COLUMN_WIDTHS[3], GridField.Type.Label, self.getTotalTimeText(category))
-
-	def refresh(self):
-		for widget in self.entriesFrame.winfo_children():
-			widget.destroy()
-		self.createRows()
+	def updatePoolAndTotalTimes(self):
+		for category in self.poolTimeStrVars.keys():
+			self.updatePoolTime(category)
+			self.updateTotalTime(category)
 
 	def onDailyTimeChanged(self, category: str, dailyTimeStrVar: tk.StringVar):
 		dailyTime = parseInt(dailyTimeStrVar.get())
@@ -323,7 +307,7 @@ class CategoryPoolsWindow:  # TODO: check and refactor
 			controller.updatePoolTime()
 		if entriesFrame is not None:
 			createEntriesFrameGridFields()
-		self.refresh()
+		self.updatePoolAndTotalTimes()
 
 
 def parseInt(value: str) -> int:  # FIXME: check why this does not allow for new values
@@ -423,6 +407,31 @@ def createEntriesFrameGridFields():
 		column += 1
 		GridField.add(entriesFrame, row, column, ENTRIES_COLUMN_WIDTHS[column], GridField.Type.Label, datetime.strptime(metaData.getFieldByIdx(MetaDataProjectTime.Field.START_TIME, entryIdx), MetaDataProjectTime.DATETIME_SAVE_FORMAT).strftime(DATETIME_DISPLAY_FORMAT))
 
+def createCategoryPoolsFrameGridFields(root: tk.Tk, headerFrame: tk.Frame, entriesFrame: tk.Frame):
+	global categoryPoolsWindow
+	categoryPoolsWindow = CategoryPoolsWindow(root, headerFrame, entriesFrame)
+	# Create grid fields for headers:
+	for column, name in enumerate(CATEGORY_POOLS_COLUMN_NAMES):
+		GridField.add(categoryPoolsWindow.headerFrame, 0, column, CATEGORY_POOLS_COLUMN_WIDTHS[column], GridField.Type.Header, name)
+	# Create grid fields for categories:
+	categories = set(DAILY_TIME_POOLS.keys())
+	for idx in range(metaData.getEntryCount()):
+		categories.add(metaData.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx))
+	for row, category in enumerate(sorted(categories)):
+		column = 0
+		GridField.add(categoryPoolsWindow.entriesFrame, row, column, CATEGORY_POOLS_COLUMN_WIDTHS[column], GridField.Type.Label, category)
+		column += 1
+		dailyTimeStrVar = tk.StringVar(categoryPoolsWindow.root, str(DAILY_TIME_POOLS.get(category, 0)))
+		combobox = GridField.add(categoryPoolsWindow.entriesFrame, row, column, CATEGORY_POOLS_COLUMN_WIDTHS[column], GridField.Type.Combobox, dailyTimeStrVar, DAILY_TIME_POOL_CHOICES)
+		combobox.bind('<<ComboboxSelected>>', lambda *_ , category=category, dailyTimeStrVar=dailyTimeStrVar: categoryPoolsWindow.onDailyTimeChanged(category, dailyTimeStrVar))
+		column += 1
+		categoryPoolsWindow.poolTimeStrVars[category] = tk.StringVar(categoryPoolsWindow.root)
+		GridField.add(categoryPoolsWindow.entriesFrame, row, column, CATEGORY_POOLS_COLUMN_WIDTHS[column], GridField.Type.DynamicLabel, categoryPoolsWindow.poolTimeStrVars[category])
+		column += 1
+		categoryPoolsWindow.totalTimeStrVars[category] = tk.StringVar(categoryPoolsWindow.root)
+		GridField.add(categoryPoolsWindow.entriesFrame, row, column, CATEGORY_POOLS_COLUMN_WIDTHS[column], GridField.Type.DynamicLabel, categoryPoolsWindow.totalTimeStrVars[category])
+		categoryPoolsWindow.updatePoolTime(category)
+		categoryPoolsWindow.updateTotalTime(category)
 
 def createCategoryPoolsWindow(root):
 	global categoryPoolsWindow
@@ -441,7 +450,7 @@ def createCategoryPoolsWindow(root):
 	entriesCanvas.bind('<Configure>', lambda _: entriesCanvas.configure(scrollregion=entriesCanvas.bbox('all')))
 	entriesFrame = tk.Frame(entriesCanvas)
 	entriesCanvas.create_window((0, 0), window=entriesFrame, anchor='nw')
-	categoryPoolsWindow = CategoryPoolsWindow(root, headerFrame, entriesFrame)
+	createCategoryPoolsFrameGridFields(root, headerFrame, entriesFrame)
 
 def createControlWindow(root):
 	global headerFrame
