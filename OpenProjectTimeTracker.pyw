@@ -166,7 +166,9 @@ class Controller:
 		self.root.after(REMINDER_BEEP_INTERVAL, self.alertTick)
 
 	def updateReminderChoice(self) -> None:
-		self.reminderInterval = parseInt(self.reminderChoiceStrVar.get()) * 60
+		if (reminderInterval := parseInt(self.reminderChoiceStrVar.get())) is None:
+			return
+		self.reminderInterval = reminderInterval * 60
 		if self.reminderInterval == 0:
 			self.nextReminder = 0
 			self.alertUntilDatetime = datetime.now()
@@ -299,8 +301,7 @@ class CategoryPoolsWindow:
 			self.updateTotalTime(category)
 
 	def onDailyTimeChanged(self, category: str, dailyTimeStrVar: tk.StringVar) -> None:
-		dailyTime: int = parseInt(dailyTimeStrVar.get())
-		if dailyTime == DAILY_TIME_POOLS.get(category, 0):
+		if (dailyTime := parseInt(dailyTimeStrVar.get())) is None or dailyTime == DAILY_TIME_POOLS.get(category, 0):
 			return
 		DAILY_TIME_POOLS[category] = dailyTime
 		if controller is not None:
@@ -310,11 +311,11 @@ class CategoryPoolsWindow:
 		self.updatePoolAndTotalTimes()
 
 
-def parseInt(value: str) -> int:  # FIXME: check why this does not allow for new values
+def parseInt(value: str) -> Optional[int]:
 	try:
 		return int(max(0, float(value)))
 	except Exception:
-		return 0
+		return None
 
 def calculateTotalDurations(project: str, category: str) -> tuple[timedelta, timedelta]:
 	totalProjectDuration = timedelta()
@@ -423,7 +424,9 @@ def createCategoryPoolsFrameGridFields(root: tk.Tk, headerFrame: tk.Frame, entri
 		column += 1
 		dailyTimeStrVar = tk.StringVar(categoryPoolsWindow.root, str(DAILY_TIME_POOLS.get(category, 0)))
 		combobox = GridField.add(categoryPoolsWindow.entriesFrame, row, column, CATEGORY_POOLS_COLUMN_WIDTHS[column], GridField.Type.Combobox, dailyTimeStrVar, DAILY_TIME_POOL_CHOICES)
-		combobox.bind('<<ComboboxSelected>>', lambda *_ , category=category, dailyTimeStrVar=dailyTimeStrVar: categoryPoolsWindow.onDailyTimeChanged(category, dailyTimeStrVar))
+		combobox.bind('<<ComboboxSelected>>', lambda *_, category=category, dailyTimeStrVar=dailyTimeStrVar: categoryPoolsWindow.onDailyTimeChanged(category, dailyTimeStrVar))
+		combobox.bind('<Return>', lambda *_, category=category, dailyTimeStrVar=dailyTimeStrVar: categoryPoolsWindow.onDailyTimeChanged(category, dailyTimeStrVar))
+		combobox.bind('<FocusOut>', lambda *_, category=category, dailyTimeStrVar=dailyTimeStrVar: categoryPoolsWindow.onDailyTimeChanged(category, dailyTimeStrVar))
 		column += 1
 		categoryPoolsWindow.poolTimeStrVars[category] = tk.StringVar(categoryPoolsWindow.root)
 		GridField.add(categoryPoolsWindow.entriesFrame, row, column, CATEGORY_POOLS_COLUMN_WIDTHS[column], GridField.Type.DynamicLabel, categoryPoolsWindow.poolTimeStrVars[category])

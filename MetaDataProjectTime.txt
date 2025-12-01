@@ -25,3 +25,4 @@ OxygenNotIncluded --- Gaming --- 3934.004844 --- 2025-11-26 23:33:51.347215
 Youtube --- Television --- 7449.6841 --- 2025-11-27 20:51:34.592285
 ProjectTimeTracker --- Programming --- 10197.917962 --- 2025-11-27 23:04:39.959933
 ProjectTimeTracker --- Programming --- 7200.0 --- 2025-11-29 10:00:00.0
+ProjectTimeTracker --- Programming --- 3606.020729 --- 2025-12-01 15:16:25.607679
