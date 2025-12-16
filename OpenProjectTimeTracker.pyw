@@ -5,6 +5,7 @@ from tkinter import ttk
 from datetime import datetime, timedelta
 from typing import Optional
 from MetaDataProjectTime import MetaDataProjectTime
+from MetaDataDailyTimePools import MetaDataDailyTimePools
 from GridField import GridField
 try:
 	import winsound
@@ -12,7 +13,6 @@ except Exception:
 	winsound = None
 
 # Configurables:
-DAILY_TIME_POOLS = {'Programming': 30, 'Television': 60, 'Gaming': 60, 'Art': 10}  # minutes
 DAILY_TIME_POOL_CHOICES = (5, 10, 15, 30, 45, 60, 90, 120)  # minutes
 WINDOW_SIZE = (1000, 300)
 HEADER_COLUMN_NAMES = ('Control:', 'Reminder:', 'Project:', 'Category:', 'Current entry time:', 'Total project time:', 'Total category time:', 'Category pool time:', 'Start date:', '')
@@ -40,12 +40,12 @@ class BUTTON_NAMES():
 	REMOVE = 'Remove'
 assert len(HEADER_COLUMN_NAMES) == len(HEADER_COLUMN_WIDTHS)-1
 # Global variables:
-metaData: MetaDataProjectTime = MetaDataProjectTime()
+metaDataProjectTime: MetaDataProjectTime = MetaDataProjectTime()
+metaDataDailyTimePools: MetaDataDailyTimePools = MetaDataDailyTimePools()
 controller: Optional['Controller'] = None
 headerFrame: Optional[tk.Canvas] = None
 entriesFrame: Optional[tk.Frame] = None
 categoryPoolsWindow: Optional['CategoryPoolsWindow'] = None
-# TODO: store categories and daily time pools in extra file instead of DAILY_TIME_POOLS
 # TODO: allow new categories to be added to categoryPoolsWindow via the UI
 # TODO: use StringVars for the EntriesList instead of recreating all grid fields each time
 # TODO: finder better system to make header and entries columns widths the same
@@ -131,8 +131,8 @@ class Controller:
 		# Store current entry:
 		if self.currentStartDatetime is not None:
 			self.accumulatedDuration += datetime.now() - self.currentStartDatetime
-		metaData.addEntry([self.projectStrVar.get(), self.categoryStrVar.get(), str(self.accumulatedDuration.total_seconds()), str(self.firstStartDatetime)])
-		metaData.writeMetaData()
+		metaDataProjectTime.addEntry([self.projectStrVar.get(), self.categoryStrVar.get(), str(self.accumulatedDuration.total_seconds()), str(self.firstStartDatetime)])
+		metaDataProjectTime.writeMetaData()
 		# Reset current entry state:
 		self.firstStartDatetime = None
 		self.currentStartDatetime = None
@@ -202,11 +202,11 @@ class Controller:
 		# Add durations from stored entries:
 		currentProject = self.projectStrVar.get()
 		currentCategory = self.categoryStrVar.get()
-		for idx in range(metaData.getEntryCount()):
-			if metaData.getFieldByIdx(MetaDataProjectTime.Field.PROJECT, idx) == currentProject:
-				totalProjectDuration += timedelta(seconds=float(metaData.getFieldByIdx(MetaDataProjectTime.Field.DURATION, idx)))
-			if metaData.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx) == currentCategory:
-				totalCategoryDuration += timedelta(seconds=float(metaData.getFieldByIdx(MetaDataProjectTime.Field.DURATION, idx)))
+		for idx in range(metaDataProjectTime.getEntryCount()):
+			if metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.PROJECT, idx) == currentProject:
+				totalProjectDuration += timedelta(seconds=float(metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.DURATION, idx)))
+			if metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx) == currentCategory:
+				totalCategoryDuration += timedelta(seconds=float(metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.DURATION, idx)))
 		# Update labels:
 		self.totalProjectDurationStrVar.set(MetaDataProjectTime.durationToStr(totalProjectDuration))
 		self.totalCategoryDurationStrVar.set(MetaDataProjectTime.durationToStr(totalCategoryDuration))
@@ -222,9 +222,9 @@ class Controller:
 	def updateSortedProjectsForCurrentCategory(self) -> None:
 		projects: set[str] = set()
 		currentCategory = self.categoryStrVar.get()
-		for idx in range(metaData.getEntryCount()):
-			if metaData.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx) == currentCategory:
-				projects.add(metaData.getFieldByIdx(MetaDataProjectTime.Field.PROJECT, idx))
+		for idx in range(metaDataProjectTime.getEntryCount()):
+			if metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx) == currentCategory:
+				projects.add(metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.PROJECT, idx))
 		self.sortedProjects = sorted(projects)
 		self.projectStrVar.set(self.sortedProjects[0] if self.sortedProjects else MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.START_TIME))
 		if hasattr(self, 'projectCombobox'):
@@ -232,8 +232,8 @@ class Controller:
 
 	def updateSortedProjectsAndCategories(self) -> None:
 		categories: set[str] = set()
-		for idx in range(metaData.getEntryCount()):
-			categories.add(metaData.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx))
+		for idx in range(metaDataProjectTime.getEntryCount()):
+			categories.add(metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx))
 		self.sortedCategories = sorted(categories)
 		self.updateSortedProjectsForCurrentCategory()
 
@@ -251,14 +251,14 @@ class EntriesList:
 
 	def readEntries(self) -> None:
 		self.entryIdxList.clear()
-		for idx in range(metaData.getEntryCount()):
+		for idx in range(metaDataProjectTime.getEntryCount()):
 			self.entryIdxList.append(idx)
-		self.entryIdxList.sort(key=lambda entryIdx: datetime.strptime(metaData.getFieldByIdx(MetaDataProjectTime.Field.START_TIME, entryIdx), MetaDataProjectTime.DATETIME_SAVE_FORMAT), reverse=True)
+		self.entryIdxList.sort(key=lambda entryIdx: datetime.strptime(metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.START_TIME, entryIdx), MetaDataProjectTime.DATETIME_SAVE_FORMAT), reverse=True)
 
 	def removeEntryByIdx(self, idx: int) -> None:
 		assert controller is not None
-		metaData.removeEntry(idx)
-		metaData.writeMetaData()
+		metaDataProjectTime.removeEntry(idx)
+		metaDataProjectTime.writeMetaData()
 		# Update UI:
 		controller.updateSortedProjectsAndCategories()
 		controller.updateTotalDurations()
@@ -288,9 +288,9 @@ class CategoryPoolsWindow:
 
 	def updateTotalTime(self, category: str) -> None:
 		totalSeconds: float = 0.0
-		for idx in range(metaData.getEntryCount()):
-			if metaData.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx) == category:
-				totalSeconds += float(metaData.getFieldByIdx(MetaDataProjectTime.Field.DURATION, idx))
+		for idx in range(metaDataProjectTime.getEntryCount()):
+			if metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx) == category:
+				totalSeconds += float(metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.DURATION, idx))
 		if controller is not None and controller.currentStartDatetime is not None and controller.getCategoryVar().get() == category:
 			totalSeconds += (datetime.now() - controller.currentStartDatetime + controller.accumulatedDuration).total_seconds()
 		self.totalTimeStrVars[category].set(MetaDataProjectTime.durationToStr(timedelta(seconds=totalSeconds)))
@@ -301,9 +301,9 @@ class CategoryPoolsWindow:
 			self.updateTotalTime(category)
 
 	def onDailyTimeChanged(self, category: str, dailyTimeStrVar: tk.StringVar) -> None:
-		if (dailyTime := parseInt(dailyTimeStrVar.get())) is None or dailyTime == DAILY_TIME_POOLS.get(category, 0):
+		if (dailyTime := parseInt(dailyTimeStrVar.get())) is None or dailyTime == metaDataDailyTimePools.getDailyMinutes(category):
 			return
-		DAILY_TIME_POOLS[category] = dailyTime
+		metaDataDailyTimePools.setDailyMinutes(category, dailyTime)
 		if controller is not None:
 			controller.updatePoolTime()
 		if entriesFrame is not None:
@@ -320,26 +320,26 @@ def parseInt(value: str) -> Optional[int]:
 def calculateTotalDurations(project: str, category: str) -> tuple[timedelta, timedelta]:
 	totalProjectDuration = timedelta()
 	totalCategoryDuration = timedelta()
-	for idx in range(metaData.getEntryCount()):
-		if metaData.getFieldByIdx(MetaDataProjectTime.Field.PROJECT, idx) == project:
-			totalProjectDuration += timedelta(seconds=float(metaData.getFieldByIdx(MetaDataProjectTime.Field.DURATION, idx)))
-		if metaData.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx) == category:
-			totalCategoryDuration += timedelta(seconds=float(metaData.getFieldByIdx(MetaDataProjectTime.Field.DURATION, idx)))
+	for idx in range(metaDataProjectTime.getEntryCount()):
+		if metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.PROJECT, idx) == project:
+			totalProjectDuration += timedelta(seconds=float(metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.DURATION, idx)))
+		if metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx) == category:
+			totalCategoryDuration += timedelta(seconds=float(metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.DURATION, idx)))
 	return totalProjectDuration, totalCategoryDuration
 
 def calculateRemainingPoolSeconds(category: str, usedSeconds: float = 0.0) -> Optional[float]:
-	if category not in DAILY_TIME_POOLS:
+	if (dailyMinutes := metaDataDailyTimePools.getDailyMinutes(category)) <= 0:
 		return None
 	# Find earliest start date and calculate used time from stored entries:
 	firstDatetime = datetime.now()
-	for idx in range(metaData.getEntryCount()):
-		if metaData.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx) == category:
-			entryDatetime = datetime.strptime(metaData.getFieldByIdx(MetaDataProjectTime.Field.START_TIME, idx), MetaDataProjectTime.DATETIME_SAVE_FORMAT)
+	for idx in range(metaDataProjectTime.getEntryCount()):
+		if metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx) == category:
+			entryDatetime = datetime.strptime(metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.START_TIME, idx), MetaDataProjectTime.DATETIME_SAVE_FORMAT)
 			if entryDatetime < firstDatetime:
 				firstDatetime = entryDatetime
-			usedSeconds += float(metaData.getFieldByIdx(MetaDataProjectTime.Field.DURATION, idx))
+			usedSeconds += float(metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.DURATION, idx))
 	# Return daily pool time sum minus used time:
-	return timedelta(minutes=DAILY_TIME_POOLS[category] * ((datetime.now().date() - firstDatetime.date()).days + 1)).total_seconds() - usedSeconds
+	return timedelta(minutes=dailyMinutes * ((datetime.now().date() - firstDatetime.date()).days + 1)).total_seconds() - usedSeconds
 
 def createHeaderFrameGridFields() -> None:
 	global controller
@@ -386,8 +386,8 @@ def createEntriesFrameGridFields() -> None:
 	# Create grid fields for list entries:
 	for row in range(entriesList.getEntryCount()):
 		entryIdx = entriesList.getEntryIdx(row)
-		project = metaData.getFieldByIdx(MetaDataProjectTime.Field.PROJECT, entryIdx)
-		category = metaData.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, entryIdx)
+		project = metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.PROJECT, entryIdx)
+		category = metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, entryIdx)
 		totalProject, totalCategory = calculateTotalDurations(project, category)
 		column = 0
 		GridField.add(entriesFrame, row, column, ENTRIES_COLUMN_WIDTHS[column], GridField.Type.Button, BUTTON_NAMES.REMOVE, lambda entryIdx=entryIdx: entriesList.removeEntryByIdx(entryIdx), False)
@@ -398,7 +398,7 @@ def createEntriesFrameGridFields() -> None:
 		column += 1
 		GridField.add(entriesFrame, row, column, ENTRIES_COLUMN_WIDTHS[column], GridField.Type.Label, category)
 		column += 1
-		GridField.add(entriesFrame, row, column, ENTRIES_COLUMN_WIDTHS[column], GridField.Type.Label, MetaDataProjectTime.durationToStr(timedelta(seconds=float(metaData.getFieldByIdx(MetaDataProjectTime.Field.DURATION, entryIdx)))))
+		GridField.add(entriesFrame, row, column, ENTRIES_COLUMN_WIDTHS[column], GridField.Type.Label, MetaDataProjectTime.durationToStr(timedelta(seconds=float(metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.DURATION, entryIdx)))))
 		column += 1
 		GridField.add(entriesFrame, row, column, ENTRIES_COLUMN_WIDTHS[column], GridField.Type.Label, MetaDataProjectTime.durationToStr(totalProject))
 		column += 1
@@ -406,7 +406,7 @@ def createEntriesFrameGridFields() -> None:
 		column += 1
 		GridField.add(entriesFrame, row, column, ENTRIES_COLUMN_WIDTHS[column], GridField.Type.Label, entriesList.calculatePoolTimeString(category))
 		column += 1
-		GridField.add(entriesFrame, row, column, ENTRIES_COLUMN_WIDTHS[column], GridField.Type.Label, datetime.strptime(metaData.getFieldByIdx(MetaDataProjectTime.Field.START_TIME, entryIdx), MetaDataProjectTime.DATETIME_SAVE_FORMAT).strftime(DATETIME_DISPLAY_FORMAT))
+		GridField.add(entriesFrame, row, column, ENTRIES_COLUMN_WIDTHS[column], GridField.Type.Label, datetime.strptime(metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.START_TIME, entryIdx), MetaDataProjectTime.DATETIME_SAVE_FORMAT).strftime(DATETIME_DISPLAY_FORMAT))
 
 def createCategoryPoolsFrameGridFields(root: tk.Tk, headerFrame: tk.Frame, entriesFrame: tk.Frame) -> None:
 	global categoryPoolsWindow
@@ -415,14 +415,14 @@ def createCategoryPoolsFrameGridFields(root: tk.Tk, headerFrame: tk.Frame, entri
 	for column, name in enumerate(CATEGORY_POOLS_COLUMN_NAMES):
 		GridField.add(categoryPoolsWindow.headerFrame, 0, column, CATEGORY_POOLS_COLUMN_WIDTHS[column], GridField.Type.Header, name)
 	# Create grid fields for categories:
-	categories = set(DAILY_TIME_POOLS.keys())
-	for idx in range(metaData.getEntryCount()):
-		categories.add(metaData.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx))
+	categories = metaDataDailyTimePools.getCategories()
+	for idx in range(metaDataProjectTime.getEntryCount()):
+		categories.add(metaDataProjectTime.getFieldByIdx(MetaDataProjectTime.Field.CATEGORY, idx))
 	for row, category in enumerate(sorted(categories)):
 		column = 0
 		GridField.add(categoryPoolsWindow.entriesFrame, row, column, CATEGORY_POOLS_COLUMN_WIDTHS[column], GridField.Type.Label, category)
 		column += 1
-		dailyTimeStrVar = tk.StringVar(categoryPoolsWindow.root, str(DAILY_TIME_POOLS.get(category, 0)))
+		dailyTimeStrVar = tk.StringVar(categoryPoolsWindow.root, str(metaDataDailyTimePools.getDailyMinutes(category)))
 		combobox = GridField.add(categoryPoolsWindow.entriesFrame, row, column, CATEGORY_POOLS_COLUMN_WIDTHS[column], GridField.Type.Combobox, dailyTimeStrVar, DAILY_TIME_POOL_CHOICES)
 		combobox.bind('<<ComboboxSelected>>', lambda *_, category=category, dailyTimeStrVar=dailyTimeStrVar: categoryPoolsWindow.onDailyTimeChanged(category, dailyTimeStrVar))
 		combobox.bind('<Return>', lambda *_, category=category, dailyTimeStrVar=dailyTimeStrVar: categoryPoolsWindow.onDailyTimeChanged(category, dailyTimeStrVar))
