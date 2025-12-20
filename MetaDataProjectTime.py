@@ -1,4 +1,5 @@
 import math
+import win32com.client
 from enum import Enum
 from datetime import datetime, timedelta
 
@@ -10,7 +11,7 @@ class MetaDataProjectTime:
 		START_TIME = 3
 
 	ENCODING = 'utf-8'
-	FILE_NAME = 'MetaDataProjectTime.txt'
+	FILE_NAME = 'MetaDataProjectTime.txt.lnk'
 	FIELD_SEPARATOR = ' --- '
 	DATETIME_SAVE_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
 
@@ -77,6 +78,16 @@ class MetaDataProjectTime:
 		fieldSets[MetaDataProjectTime.Field.CATEGORY] = {MetaDataProjectTime.getDefaultFieldValue(MetaDataProjectTime.Field.CATEGORY)}
 		return fieldSets
 
+	@staticmethod
+	def getMetaDataPath() -> str:
+		try:
+			if MetaDataProjectTime.FILE_NAME.endswith('.lnk'):
+				return win32com.client.Dispatch("WScript.Shell").CreateShortCut(MetaDataProjectTime.FILE_NAME).Targetpath
+			else:
+				return MetaDataProjectTime.FILE_NAME
+		except Exception as e:
+			raise RuntimeError(f"Failed to resolve '{MetaDataProjectTime.FILE_NAME}': {e}")
+
 	def __init__(self) -> None:
 		self.metaData: list[list[str]] = []
 		self.fieldSets = MetaDataProjectTime.getDefaultFieldSets()
@@ -112,7 +123,7 @@ class MetaDataProjectTime:
 		self.metaData.pop(idx)
 
 	def readMetaData(self) -> None:
-		metaDataFile = open(MetaDataProjectTime.FILE_NAME, 'r', encoding=MetaDataProjectTime.ENCODING)
+		metaDataFile = open(MetaDataProjectTime.getMetaDataPath(), 'r', encoding=MetaDataProjectTime.ENCODING)
 		lines = metaDataFile.readlines()
 		self.metaData = []
 		for line in lines:
@@ -124,5 +135,5 @@ class MetaDataProjectTime:
 		metaDataFormated: list[str] = []
 		for fields in self.metaData:
 			metaDataFormated.append(MetaDataProjectTime.FIELD_SEPARATOR.join(fields))
-		with open(MetaDataProjectTime.FILE_NAME, 'w', encoding=MetaDataProjectTime.ENCODING) as metaDataFile:
+		with open(MetaDataProjectTime.getMetaDataPath(), 'w', encoding=MetaDataProjectTime.ENCODING) as metaDataFile:
 			metaDataFile.write('\n'.join(metaDataFormated))

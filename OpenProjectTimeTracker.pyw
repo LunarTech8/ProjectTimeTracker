@@ -424,9 +424,9 @@ def createCategoryPoolsFrameGridFields(root: tk.Tk, headerFrame: tk.Frame, entri
 		column += 1
 		dailyTimeStrVar = tk.StringVar(categoryPoolsWindow.root, str(metaDataDailyTimePools.getDailyMinutes(category)))
 		combobox = GridField.add(categoryPoolsWindow.entriesFrame, row, column, CATEGORY_POOLS_COLUMN_WIDTHS[column], GridField.Type.Combobox, dailyTimeStrVar, DAILY_TIME_POOL_CHOICES)
-		combobox.bind('<<ComboboxSelected>>', lambda *_, category=category, dailyTimeStrVar=dailyTimeStrVar: categoryPoolsWindow.onDailyTimeChanged(category, dailyTimeStrVar))
-		combobox.bind('<Return>', lambda *_, category=category, dailyTimeStrVar=dailyTimeStrVar: categoryPoolsWindow.onDailyTimeChanged(category, dailyTimeStrVar))
-		combobox.bind('<FocusOut>', lambda *_, category=category, dailyTimeStrVar=dailyTimeStrVar: categoryPoolsWindow.onDailyTimeChanged(category, dailyTimeStrVar))
+		combobox.bind('<<ComboboxSelected>>', lambda *_, category=category, dailyTimeStrVar=dailyTimeStrVar, window=categoryPoolsWindow: window.onDailyTimeChanged(category, dailyTimeStrVar))
+		combobox.bind('<Return>', lambda *_, category=category, dailyTimeStrVar=dailyTimeStrVar, window=categoryPoolsWindow: window.onDailyTimeChanged(category, dailyTimeStrVar))
+		combobox.bind('<FocusOut>', lambda *_, category=category, dailyTimeStrVar=dailyTimeStrVar, window=categoryPoolsWindow: window.onDailyTimeChanged(category, dailyTimeStrVar))
 		column += 1
 		categoryPoolsWindow.poolTimeStrVars[category] = tk.StringVar(categoryPoolsWindow.root)
 		GridField.add(categoryPoolsWindow.entriesFrame, row, column, CATEGORY_POOLS_COLUMN_WIDTHS[column], GridField.Type.DynamicLabel, categoryPoolsWindow.poolTimeStrVars[category])
@@ -440,7 +440,7 @@ def createCategoryPoolsWindow(root: tk.Tk) -> None:
 	global categoryPoolsWindow
 	root.title('Category time pools')
 	root.geometry(str(CATEGORY_POOLS_WINDOW_SIZE[0]) + 'x' + str(CATEGORY_POOLS_WINDOW_SIZE[1]))
-	root.resizable(0, 1)
+	root.resizable(False, True)
 	outerFrame = tk.Frame(root)
 	outerFrame.pack(fill=tk.BOTH, expand=1)
 	headerFrame = tk.Frame(outerFrame)
@@ -460,7 +460,7 @@ def createControlWindow(root: tk.Tk) -> None:
 	global entriesFrame
 	root.title('Project time tracker')
 	root.geometry(str(WINDOW_SIZE[0]) + 'x' + str(WINDOW_SIZE[1]))
-	root.resizable(0, 1)
+	root.resizable(False, True)
 	# Set up fixed header frame and scrollable entries frame:
 	outerFrame = tk.Frame(root)
 	outerFrame.pack(fill=tk.BOTH, expand=1)
