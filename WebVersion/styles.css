@@ -1,0 +1,468 @@
+/* CSS Variables for theming */
+:root {
+    --bg-color: #f5f5f5;
+    --window-bg: #ffffff;
+    --border-color: #ccc;
+    --header-bg: #e0e0e0;
+    --btn-primary-bg: #4CAF50;
+    --btn-primary-hover: #45a049;
+    --btn-secondary-bg: #607D8B;
+    --btn-secondary-hover: #546E7A;
+    --btn-danger-bg: #f44336;
+    --btn-danger-hover: #da190b;
+    --btn-file-bg: #2196F3;
+    --btn-file-hover: #1976D2;
+    --pool-positive: #4CAF50;
+    --pool-negative: #f44336;
+    --reminder-flash: #2196F3;
+    --text-color: #333;
+    --time-display-bg: #f9f9f9;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    padding: 10px;
+    min-height: 100vh;
+}
+
+.app-container {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.window {
+    background-color: var(--window-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.window h2 {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--header-bg);
+    font-size: 1.2em;
+}
+
+/* Header Section */
+.header-section {
+    overflow-x: auto;
+    overflow-y: visible;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 10;
+}
+
+.header-table {
+    width: 100%;
+    min-width: 1125px;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.header-table th,
+.header-table td {
+    padding: 8px 10px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.header-table th {
+    background-color: var(--header-bg);
+    font-weight: 600;
+    font-size: 0.9em;
+}
+
+.header-table td {
+    vertical-align: middle;
+    overflow: visible;
+    position: relative;
+}
+
+/* Buttons */
+button {
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 0.9em;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+button:hover {
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background-color: var(--btn-primary-bg);
+    color: white;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    background-color: var(--btn-primary-hover);
+}
+
+.btn-secondary {
+    background-color: var(--btn-secondary-bg);
+    color: white;
+    width: 100%;
+}
+
+.btn-secondary:hover {
+    background-color: var(--btn-secondary-hover);
+}
+
+.btn-danger {
+    background-color: var(--btn-danger-bg);
+    color: white;
+    padding: 4px 10px;
+    font-size: 0.8em;
+    width: 100%;
+}
+
+.btn-danger:hover {
+    background-color: var(--btn-danger-hover);
+}
+
+.btn-file {
+    background-color: var(--btn-file-bg);
+    color: white;
+    padding: 6px 12px;
+    font-size: 0.85em;
+}
+
+.btn-file:hover {
+    background-color: var(--btn-file-hover);
+}
+
+.btn-new {
+    background-color: var(--btn-primary-bg);
+}
+
+.btn-new:hover {
+    background-color: var(--btn-primary-hover);
+}
+
+/* Inputs */
+input[type="text"],
+select {
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.9em;
+    width: 100%;
+    max-width: 150px;
+}
+
+select {
+    max-width: 80px;
+    cursor: pointer;
+}
+
+input[type="text"]:focus,
+select:focus {
+    outline: none;
+    border-color: var(--btn-file-bg);
+    box-shadow: 0 0 3px rgba(33, 150, 243, 0.3);
+}
+
+/* Custom Combobox */
+.combobox {
+    position: relative;
+    display: inline-flex;
+    align-items: stretch;
+    width: 100%;
+}
+
+.combobox input[type="text"] {
+    border-radius: 4px 0 0 4px;
+    border-right: none;
+    max-width: none;
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+}
+
+.combobox-btn {
+    padding: 4px 8px;
+    background-color: var(--header-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    font-size: 0.7em;
+    min-width: auto;
+    display: flex;
+    align-items: center;
+}
+
+.combobox-btn:hover {
+    background-color: #d0d0d0;
+    transform: none;
+}
+
+.combobox-dropdown {
+    display: none;
+    position: fixed;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 0 0 4px 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.combobox-dropdown.open {
+    display: block;
+}
+
+.combobox-option {
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.combobox-option:hover {
+    background-color: #e8f4fc;
+}
+
+.combobox-option.selected {
+    background-color: #d0e8f8;
+}
+
+/* Time Display */
+.time-display {
+    display: inline-block;
+    padding: 6px 10px;
+    background-color: var(--time-display-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    min-width: 80px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-weight: 500;
+}
+
+.time-display.flashing {
+    color: var(--reminder-flash);
+    animation: flash 0.25s infinite alternate;
+}
+
+@keyframes flash {
+    from { color: var(--reminder-flash); }
+    to { color: var(--text-color); }
+}
+
+.time-display.positive {
+    color: var(--pool-positive);
+}
+
+.time-display.negative {
+    color: var(--pool-negative);
+}
+
+/* Entries Section */
+.entries-section {
+    max-height: 300px;
+    overflow-x: auto;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.entries-table {
+    width: 100%;
+    min-width: 1125px;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.entries-table th,
+.entries-table td {
+    padding: 8px 10px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.entries-table th {
+    background-color: var(--header-bg);
+    font-weight: 600;
+    font-size: 0.85em;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.entries-table tbody tr:hover {
+    background-color: #f0f0f0;
+}
+
+.entries-table tbody tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+/* Pools Section */
+.pools-section {
+    overflow-x: auto;
+}
+
+.pools-table {
+    width: 100%;
+    min-width: 500px;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.pools-table th,
+.pools-table td {
+    padding: 10px 15px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.pools-table th {
+    background-color: var(--header-bg);
+    font-weight: 600;
+}
+
+.pools-table input[type="number"] {
+    width: 80px;
+    padding: 5px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.pools-table select {
+    max-width: 100px;
+}
+
+/* Daily time combobox in pools table */
+.daily-time-combobox {
+    width: 100%;
+}
+
+.daily-time-combobox input {
+    width: 60px;
+    text-align: center;
+}
+
+.daily-time-combobox .combobox-dropdown {
+    min-width: 80px;
+}
+
+/* Import/Export Section */
+.import-export-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    background-color: var(--window-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.storage-info {
+    font-size: 0.85em;
+    color: #888;
+    margin-left: auto;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    body {
+        padding: 5px;
+    }
+
+    .window {
+        padding: 10px;
+    }
+
+    .header-table,
+    .entries-table {
+        font-size: 0.85em;
+    }
+
+    .file-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .file-group {
+        flex-wrap: wrap;
+    }
+
+    .import-export-section {
+        flex-wrap: wrap;
+    }
+}
+
+/* Toast Notifications */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    background-color: #333;
+    color: white;
+    border-radius: 4px;
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+}
+
+.toast.success {
+    background-color: var(--pool-positive);
+}
+
+.toast.error {
+    background-color: var(--pool-negative);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}

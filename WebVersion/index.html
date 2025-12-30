@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Time Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Main Control Window -->
+        <div class="window" id="mainWindow">
+            <h2>Project Time Tracker</h2>
+
+            <!-- Header Controls -->
+            <div class="header-section">
+                <table class="header-table" id="headerTable">
+                    <colgroup id="headerColgroup"></colgroup>
+                    <thead>
+                        <tr>
+                            <th colspan="2">Control:</th>
+                            <th>Reminder:</th>
+                            <th>Project:</th>
+                            <th>Category:</th>
+                            <th>Current entry time:</th>
+                            <th>Total project time:</th>
+                            <th>Total category time:</th>
+                            <th>Category pool time:</th>
+                            <th>Start date:</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><button id="startStopBtn" class="btn-primary">Start</button></td>
+                            <td><button id="endBtn" class="btn-secondary">End</button></td>
+                            <td>
+                                <div class="combobox" id="reminderCombobox">
+                                    <input type="text" id="reminderInput" value="0">
+                                    <button class="combobox-btn" tabindex="-1">▼</button>
+                                    <div class="combobox-dropdown" id="reminderDropdown"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="combobox" id="projectCombobox">
+                                    <input type="text" id="projectInput" value="ProjectTimeTracker">
+                                    <button class="combobox-btn" tabindex="-1">▼</button>
+                                    <div class="combobox-dropdown" id="projectDropdown"></div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="combobox" id="categoryCombobox">
+                                    <input type="text" id="categoryInput" value="Programming">
+                                    <button class="combobox-btn" tabindex="-1">▼</button>
+                                    <div class="combobox-dropdown" id="categoryDropdown"></div>
+                                </div>
+                            </td>
+                            <td><span id="currentEntryTime" class="time-display">0:00</span></td>
+                            <td><span id="totalProjectTime" class="time-display">0:00</span></td>
+                            <td><span id="totalCategoryTime" class="time-display">0:00</span></td>
+                            <td><span id="poolTime" class="time-display">-</span></td>
+                            <td><span id="startDate" class="time-display">-</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Entries List -->
+            <div class="entries-section">
+                <table class="entries-table" id="entriesTable">
+                    <colgroup id="entriesColgroup"></colgroup>
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th></th>
+                            <th>Project</th>
+                            <th>Category</th>
+                            <th>Entry time</th>
+                            <th>Total project</th>
+                            <th>Total category</th>
+                            <th>Pool time</th>
+                            <th>Start date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entriesBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Category Pools Window -->
+        <div class="window" id="poolsWindow">
+            <h2>Category Time Pools</h2>
+            <div class="pools-section">
+                <table class="pools-table" id="poolsTable">
+                    <colgroup id="poolsColgroup"></colgroup>
+                    <thead>
+                        <tr>
+                            <th>Name:</th>
+                            <th>Daily time:</th>
+                            <th>Pool time:</th>
+                            <th>Total time:</th>
+                        </tr>
+                    </thead>
+                    <tbody id="poolsBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Load/Save -->
+        <div class="import-export-section">
+            <button id="importBtn" class="btn-file" title="Load data from txt files">📂 Load</button>
+            <button id="exportBtn" class="btn-file" title="Save data to txt files">💾 Save</button>
+            <span class="storage-info">Data auto-saved to browser storage</span>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
