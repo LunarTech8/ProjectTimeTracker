@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Project Time Tracker</string>
+
+    <!-- Buttons -->
+    <string name="start">Start</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="end">End</string>
+    <string name="remove">Remove</string>
+    <string name="add">Add</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+
+    <!-- Labels -->
+    <string name="reminder">Reminder</string>
+    <string name="project">Project</string>
+    <string name="category">Category</string>
+    <string name="current">Current</string>
+    <string name="total_project">Project Total</string>
+    <string name="total_category">Category Total</string>
+    <string name="pool">Pool</string>
+    <string name="total">Total</string>
+    <string name="started_at">Started at:</string>
+    <string name="started">Started</string>
+    <string name="duration">Duration</string>
+    <string name="entries_header">Time Entries</string>
+    <string name="daily_minutes">Daily (min)</string>
+    <string name="category_name">Category Name</string>
+
+    <!-- Dialogs -->
+    <string name="confirm_delete">Confirm Delete</string>
+    <string name="confirm_delete_message">Are you sure you want to delete this entry?</string>
+    <string name="add_category">Add Category</string>
+
+    <!-- Activities -->
+    <string name="category_pools_title">Category Time Pools</string>
+</resources>

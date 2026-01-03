@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary colors -->
+    <color name="primary">#1976D2</color>
+    <color name="primary_dark">#1565C0</color>
+    <color name="primary_light">#42A5F5</color>
+    <color name="accent">#FF4081</color>
+
+    <!-- Text colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+
+    <!-- Pool time colors (matching Python version) -->
+    <color name="pool_positive">#4CAF50</color>
+    <color name="pool_negative">#F44336</color>
+
+    <!-- Reminder flash color (matching Python version) -->
+    <color name="reminder_flash">#2196F3</color>
+
+    <!-- Background colors -->
+    <color name="background">#FAFAFA</color>
+    <color name="background_header">#EEEEEE</color>
+    <color name="divider">#BDBDBD</color>
+
+    <!-- Card colors -->
+    <color name="card_background">#FFFFFF</color>
+</resources>

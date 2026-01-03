@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingVertical="8dp"
+    android:gravity="center_vertical">
+
+    <TextView
+        android:id="@+id/tv_pool_category"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="2"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary" />
+
+    <EditText
+        android:id="@+id/et_pool_daily_minutes"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:inputType="number"
+        android:gravity="center"
+        android:textSize="14sp"
+        android:background="@drawable/edit_text_background" />
+
+    <TextView
+        android:id="@+id/tv_pool_remaining"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary" />
+
+    <TextView
+        android:id="@+id/tv_pool_total"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary" />
+
+</LinearLayout>
