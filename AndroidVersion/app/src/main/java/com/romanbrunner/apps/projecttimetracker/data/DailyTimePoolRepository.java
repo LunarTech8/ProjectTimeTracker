@@ -7,6 +7,13 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.romanbrunner.apps.projecttimetracker.model.DailyTimePool;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,6 +27,7 @@ import java.util.Set;
 public class DailyTimePoolRepository {
     private static final String PREFS_NAME = "daily_time_pools_prefs";
     private static final String KEY_POOLS = "daily_time_pools";
+    private static final String FIELD_SEPARATOR = " --- ";
 
     private final SharedPreferences prefs;
     private final Gson gson;
@@ -77,6 +85,57 @@ public class DailyTimePoolRepository {
 
     public void addOrUpdatePool(DailyTimePool pool) {
         pools.put(pool.getCategory(), pool.getDailyMinutes());
+        savePools();
+    }
+
+    /**
+     * Exports pools to a text file in Python format.
+     * Format: CATEGORY --- DAILY_MINUTES
+     */
+    public void exportToTextFile(OutputStream outputStream) throws IOException {
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+
+        try {
+            for (Map.Entry<String, Integer> entry : pools.entrySet()) {
+                String line = entry.getKey() + FIELD_SEPARATOR + entry.getValue();
+                writer.write(line);
+                writer.newLine();
+            }
+        } finally {
+            writer.close();
+        }
+    }
+
+    /**
+     * Imports pools from a text file in Python format.
+     * Format: CATEGORY --- DAILY_MINUTES
+     */
+    public void importFromTextFile(InputStream inputStream) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+        Map<String, Integer> importedPools = new HashMap<>();
+
+        try {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty()) {
+                    continue;
+                }
+
+                String[] parts = line.split(FIELD_SEPARATOR);
+                if (parts.length >= 2) {
+                    String category = parts[0].trim();
+                    int dailyMinutes = Integer.parseInt(parts[1].trim());
+                    importedPools.put(category, dailyMinutes);
+                }
+            }
+        } finally {
+            reader.close();
+        }
+
+        // Replace current pools with imported ones
+        pools.clear();
+        pools.putAll(importedPools);
         savePools();
     }
 }

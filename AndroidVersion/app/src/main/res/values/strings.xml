@@ -21,11 +21,14 @@
     <string name="total_category">Total category time</string>
     <string name="pool">Category pool time</string>
     <string name="total">Total</string>
-    <string name="started_at">Start date:</string>
+    <string name="started_at">Start date</string>
     <string name="started">Started</string>
     <string name="duration">Duration</string>
+    <string name="control_panel">Control Panel</string>
     <string name="entries_header">Time Entries</string>
+    <string name="pools_header">Category Time Pools</string>
     <string name="daily_minutes">Daily (min)</string>
+    <string name="pool_time">Pool Time</string>
     <string name="category_name">Category Name</string>
 
     <!-- Dialogs -->
