@@ -181,5 +181,21 @@ cython_debug/
 .cursorindexingignore
 
 # Meta data
-MetaData*.txt
-MetaData*.txt.lnk
+PythonVersion/MetaData*.txt
+PythonVersion/MetaData*.txt.lnk
+
+# Android
+AndroidVersion/*.iml
+AndroidVersion/.gradle/
+AndroidVersion/local.properties
+AndroidVersion/.idea/
+AndroidVersion/build/
+AndroidVersion/app/build/
+AndroidVersion/captures/
+AndroidVersion/.externalNativeBuild/
+AndroidVersion/.cxx/
+AndroidVersion/output.json
+AndroidVersion/*.apk
+AndroidVersion/*.aab
+AndroidVersion/*.ap_
+AndroidVersion/*.dex
