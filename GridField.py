@@ -29,7 +29,7 @@ class GridField():
 
 	@staticmethod
 	def isText(text: str) -> bool:
-		return text != None
+		return text is not None
 
 	@staticmethod
 	def add(root, row, column, width, type, arg1=None, arg2=None, arg3=None):

@@ -13,15 +13,15 @@
     <string name="delete">Delete</string>
 
     <!-- Labels -->
-    <string name="reminder">Reminder</string>
+    <string name="reminder">Reminder [min]</string>
     <string name="project">Project</string>
     <string name="category">Category</string>
-    <string name="current">Current</string>
-    <string name="total_project">Project Total</string>
-    <string name="total_category">Category Total</string>
-    <string name="pool">Pool</string>
+    <string name="current">Current entry time</string>
+    <string name="total_project">Total project time</string>
+    <string name="total_category">Total category time</string>
+    <string name="pool">Category pool time</string>
     <string name="total">Total</string>
-    <string name="started_at">Started at:</string>
+    <string name="started_at">Start date:</string>
     <string name="started">Started</string>
     <string name="duration">Duration</string>
     <string name="entries_header">Time Entries</string>

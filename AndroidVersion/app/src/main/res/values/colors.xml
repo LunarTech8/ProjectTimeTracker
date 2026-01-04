@@ -26,4 +26,7 @@
 
     <!-- Card colors -->
     <color name="card_background">#FFFFFF</color>
+
+    <!-- Launcher icon colors -->
+    <color name="ic_launcher_background">#1976D2</color>
 </resources>
