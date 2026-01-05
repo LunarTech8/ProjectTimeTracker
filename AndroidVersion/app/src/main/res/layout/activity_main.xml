@@ -17,7 +17,7 @@
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
             app:title="@string/app_name"
-            app:titleTextColor="@color/white" />
+            app:titleTextColor="@android:color/white" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -33,7 +33,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:background="@color/background_header"
             android:paddingVertical="8dp"
             android:paddingHorizontal="16dp">
 
@@ -42,7 +41,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/control_panel"
+                android:text="@string/control_header"
                 android:checked="true" />
 
             <RadioButton
@@ -93,7 +92,55 @@
                         android:orientation="vertical"
                         android:padding="16dp">
 
-                <!-- Row 1: Buttons -->
+                <!-- Row 1: Category -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                    android:hint="@string/cp_category">
+
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/spinner_category"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Row 2: Project -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                    android:hint="@string/cp_project">
+
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/spinner_project"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Row 3: Reminder -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                    android:hint="@string/cp_reminder_minutes">
+
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/spinner_reminder"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Row 4: Buttons -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -106,7 +153,19 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/start"
-                        android:layout_marginEnd="8dp" />
+                        android:paddingHorizontal="8dp"
+                        style="@style/Widget.Material3.Button" />
+
+                    <Button
+                        android:id="@+id/btn_reset"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/reset"
+                        android:layout_marginStart="8dp"
+                        android:paddingHorizontal="8dp"
+                        android:visibility="gone"
+                        style="@style/Widget.Material3.Button" />
 
                     <Button
                         android:id="@+id/btn_end"
@@ -114,57 +173,12 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/end"
-                        style="@style/Widget.Material3.Button.OutlinedButton" />
+                        android:layout_marginStart="8dp"
+                        android:paddingHorizontal="8dp"
+                        android:visibility="gone"
+                        style="@style/Widget.Material3.Button" />
 
                 </LinearLayout>
-
-                <!-- Row 2: Reminder -->
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                    android:hint="@string/reminder">
-
-                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                        android:id="@+id/spinner_reminder"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="none" />
-
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <!-- Row 3: Project -->
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                    android:hint="@string/project">
-
-                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                        android:id="@+id/spinner_project"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="text" />
-
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <!-- Row 4: Category -->
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                    android:hint="@string/category">
-
-                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                        android:id="@+id/spinner_category"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="text" />
-
-                </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Row 5: Current and Pool -->
                 <LinearLayout
@@ -177,15 +191,15 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:gravity="center">
+                        android:gravity="start"
+                        android:orientation="vertical">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/current"
+                            android:text="@string/cp_current_entry_time"
                             android:textSize="12sp"
-                            android:textColor="@color/text_secondary" />
+                            android:textAppearance="?android:attr/textAppearanceSmall" />
 
                         <TextView
                             android:id="@+id/tv_current_duration"
@@ -193,8 +207,7 @@
                             android:layout_height="wrap_content"
                             android:text="0:00"
                             android:textSize="20sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/text_primary" />
+                            android:textStyle="bold" />
 
                     </LinearLayout>
 
@@ -203,14 +216,14 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:gravity="center">
+                        android:gravity="start">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/pool"
+                            android:text="@string/cp_category_pool_time"
                             android:textSize="12sp"
-                            android:textColor="@color/text_secondary" />
+                            android:textAppearance="?android:attr/textAppearanceSmall" />
 
                         <TextView
                             android:id="@+id/tv_pool_time"
@@ -218,8 +231,7 @@
                             android:layout_height="wrap_content"
                             android:text="-"
                             android:textSize="20sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/text_primary" />
+                            android:textStyle="bold" />
 
                     </LinearLayout>
 
@@ -237,14 +249,14 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:gravity="center">
+                        android:gravity="start">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/total_project"
+                            android:text="@string/cp_total_project_time"
                             android:textSize="12sp"
-                            android:textColor="@color/text_secondary" />
+                            android:textAppearance="?android:attr/textAppearanceSmall" />
 
                         <TextView
                             android:id="@+id/tv_total_project_duration"
@@ -252,8 +264,7 @@
                             android:layout_height="wrap_content"
                             android:text="0:00"
                             android:textSize="20sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/text_primary" />
+                            android:textStyle="bold" />
 
                     </LinearLayout>
 
@@ -262,14 +273,14 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:gravity="center">
+                        android:gravity="start">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/total_category"
+                            android:text="@string/cp_total_category_time"
                             android:textSize="12sp"
-                            android:textColor="@color/text_secondary" />
+                            android:textAppearance="?android:attr/textAppearanceSmall" />
 
                         <TextView
                             android:id="@+id/tv_total_category_duration"
@@ -277,8 +288,7 @@
                             android:layout_height="wrap_content"
                             android:text="0:00"
                             android:textSize="20sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/text_primary" />
+                            android:textStyle="bold" />
 
                     </LinearLayout>
 
@@ -289,14 +299,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:gravity="center">
+                    android:gravity="start">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/started_at"
+                        android:text="@string/cp_start_date"
                         android:textSize="12sp"
-                        android:textColor="@color/text_secondary" />
+                        android:textAppearance="?android:attr/textAppearanceSmall" />
 
                     <TextView
                         android:id="@+id/tv_start_date"
@@ -304,8 +314,7 @@
                         android:layout_height="wrap_content"
                         android:text="-"
                         android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/text_primary" />
+                        android:textStyle="bold" />
 
                 </LinearLayout>
 
@@ -344,8 +353,8 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Load"
-                            android:layout_marginEnd="8dp"
-                            style="@style/Widget.Material3.Button.OutlinedButton" />
+                            android:paddingHorizontal="8dp"
+                            style="@style/Widget.Material3.Button" />
 
                         <Button
                             android:id="@+id/btn_save_entries"
@@ -353,7 +362,9 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Save"
-                            style="@style/Widget.Material3.Button.OutlinedButton" />
+                            android:layout_marginStart="8dp"
+                            android:paddingHorizontal="8dp"
+                            style="@style/Widget.Material3.Button" />
 
                     </LinearLayout>
 
@@ -397,8 +408,8 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Load"
-                            android:layout_marginEnd="8dp"
-                            style="@style/Widget.Material3.Button.OutlinedButton" />
+                            android:paddingHorizontal="8dp"
+                            style="@style/Widget.Material3.Button" />
 
                         <Button
                             android:id="@+id/btn_save_pools"
@@ -406,7 +417,9 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Save"
-                            style="@style/Widget.Material3.Button.OutlinedButton" />
+                            android:layout_marginStart="8dp"
+                            android:paddingHorizontal="8dp"
+                            style="@style/Widget.Material3.Button" />
 
                     </LinearLayout>
 
@@ -416,46 +429,46 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:paddingHorizontal="16dp"
-                        android:paddingVertical="8dp"
-                        android:background="@color/background">
+                        android:paddingVertical="8dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1.6"
-                            android:text="@string/category"
+                            android:layout_weight="1.4"
+                            android:text="@string/ctp_category"
                             android:textSize="12sp"
                             android:textStyle="bold"
-                            android:textColor="@color/text_secondary" />
+                            android:textAppearance="?android:attr/textAppearanceSmall"
+                            android:gravity="start" />
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="@string/daily_minutes"
+                            android:text="@string/ctp_daily_minutes"
                             android:textSize="12sp"
                             android:textStyle="bold"
-                            android:textColor="@color/text_secondary"
+                            android:textAppearance="?android:attr/textAppearanceSmall"
                             android:gravity="center" />
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="@string/pool_time"
+                            android:text="@string/ctp_pool_time"
                             android:textSize="12sp"
                             android:textStyle="bold"
-                            android:textColor="@color/text_secondary"
+                            android:textAppearance="?android:attr/textAppearanceSmall"
                             android:gravity="center" />
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="@string/total"
+                            android:text="@string/ctp_total_time"
                             android:textSize="12sp"
                             android:textStyle="bold"
-                            android:textColor="@color/text_secondary"
+                            android:textAppearance="?android:attr/textAppearanceSmall"
                             android:gravity="center" />
 
                     </LinearLayout>
@@ -469,6 +482,34 @@
                         android:paddingHorizontal="16dp"
                         android:paddingBottom="8dp"
                         android:clipToPadding="false" />
+
+                    <!-- Add/Remove Buttons -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:padding="8dp">
+
+                        <Button
+                            android:id="@+id/btn_add_category"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/add_category"
+                            android:paddingHorizontal="8dp"
+                            style="@style/Widget.Material3.Button" />
+
+                        <Button
+                            android:id="@+id/btn_remove_category"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/remove_category"
+                            android:layout_marginStart="8dp"
+                            android:paddingHorizontal="8dp"
+                            style="@style/Widget.Material3.Button" />
+
+                    </LinearLayout>
 
                 </LinearLayout>
 

@@ -4,10 +4,12 @@ An Android port of the Project Time Tracker desktop application, built with Java
 
 ## Features
 
-- **Time Tracking**: Start, pause, resume, and end time entries for projects and categories
-- **Reminders**: Configurable reminder intervals (0, 15, 30, 60, 120 minutes) with vibration and sound alerts
+- **Time Tracking**: Start, pause, resume, reset, and end time entries for projects and categories
+- **Reminders**: Configurable reminder intervals with custom input support, includes vibration and sound alerts
 - **Daily Time Pools**: Track daily time budgets for categories and view remaining pool time
+- **Category Management**: Add new categories and remove existing ones (with cascade deletion of entries)
 - **Three-Section Interface**: Radio button selector for Control Panel, Time Entries, and Category Time Pools
+- **Dark Mode Support**: Automatic theme switching based on system settings
 - **File Import/Export**: Load and save data files compatible with Python/Web versions
 - **Persistent Storage**: Uses SharedPreferences with JSON serialization
 - **Material Design**: Modern Android UI with Material 3 components
@@ -68,8 +70,10 @@ AndroidVersion/
 The app has three main sections accessible via radio buttons:
 
 ### 1. Control Panel
-- **Start/End Buttons**: Begin/finish time tracking
-- **Reminder Selector**: Choose reminder interval
+- **Start/Pause/Resume Buttons**: Begin, pause, or resume time tracking
+- **Reset Button**: Stop tracking without saving (appears when timer is active)
+- **End Button**: Stop tracking and save entry (appears when timer is active)
+- **Reminder Selector**: Choose or enter custom reminder interval in minutes
 - **Project/Category Dropdowns**: Select or enter project and category (category filters projects)
 - **Time Displays**:
   - Current entry time (live counter)
@@ -89,6 +93,7 @@ The app has three main sections accessible via radio buttons:
 
 ### 3. Category Time Pools
 - **Load/Save Buttons**: Import/export MetaDataDailyTimePools.txt
+- **Add/Remove Buttons**: Manage categories (removal cascades to delete all associated entries)
 - **Pool Editor**: Table showing:
   - Category name
   - Daily minutes (editable)
@@ -111,6 +116,24 @@ The app has three main sections accessible via radio buttons:
 - Android Gradle Plugin 8.13.2
 
 ## Key Features Explained
+
+### Dark Mode
+The app automatically switches between light and dark themes based on your device's system settings using Material 3's DayNight theme. All UI elements adapt their colors accordingly.
+
+### Smart Button Visibility
+- **Start**: Visible when no timer is active
+- **Pause/Resume**: Visible while timer is running
+- **Reset & End**: Only visible when timer is running or paused
+  - Reset: Discards current tracking without saving
+  - End: Saves the entry and stops tracking
+
+### Custom Reminder Intervals
+You can either select from predefined intervals (0, 15, 30, 60, 120 minutes) or type any custom value in minutes.
+
+### Category Management
+- **Add Category**: Enter a new category name and daily time budget. Duplicate names are prevented.
+- **Remove Category**: Select from existing categories to remove. All time entries associated with the category are also deleted.
+- If the removed category is currently selected, the selection is automatically reset.
 
 ### Category-Filtered Projects
 When you select a category, the project dropdown automatically shows only projects that have entries in that category, making it easier to find the right project.

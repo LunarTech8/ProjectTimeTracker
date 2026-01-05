@@ -83,6 +83,11 @@ public class TimeEntryRepository {
         }
     }
 
+    public void removeEntriesByCategory(String category) {
+        entries.removeIf(e -> category.equals(e.getCategory()));
+        saveEntries();
+    }
+
     public int getEntryCount() {
         return entries.size();
     }

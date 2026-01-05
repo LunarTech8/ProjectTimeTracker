@@ -61,6 +61,10 @@ public class DailyTimePoolRepository {
         return pools.keySet();
     }
 
+    public List<String> getAllCategories() {
+        return new ArrayList<>(pools.keySet());
+    }
+
     public int getDailyMinutes(String category) {
         return pools.getOrDefault(category, 0);
     }

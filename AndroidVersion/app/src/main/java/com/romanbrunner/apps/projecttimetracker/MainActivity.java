@@ -56,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
 
     // UI Components
     private Button btnStartStop;
+    private Button btnReset;
     private Button btnEnd;
     private MaterialAutoCompleteTextView spinnerReminder;
     private MaterialAutoCompleteTextView spinnerProject;
@@ -75,6 +76,8 @@ public class MainActivity extends AppCompatActivity {
     private Button btnSaveEntries;
     private Button btnLoadPools;
     private Button btnSavePools;
+    private Button btnAddCategory;
+    private Button btnRemoveCategory;
 
     // File pickers
     private ActivityResultLauncher<String[]> loadEntriesFileLauncher;
@@ -118,7 +121,8 @@ public class MainActivity extends AppCompatActivity {
                 handler.postDelayed(this, REMINDER_BEEP_INTERVAL);
             } else {
                 alertUntilDatetime = null;
-                tvCurrentDuration.setTextColor(getResources().getColor(R.color.text_primary, null));
+                // Reset to default text color
+                tvCurrentDuration.setTextColor(tvStartDate.getCurrentTextColor());
             }
         }
     };
@@ -179,6 +183,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeViews() {
         btnStartStop = findViewById(R.id.btn_start_stop);
+        btnReset = findViewById(R.id.btn_reset);
         btnEnd = findViewById(R.id.btn_end);
         spinnerReminder = findViewById(R.id.spinner_reminder);
         spinnerProject = findViewById(R.id.spinner_project);
@@ -194,6 +199,8 @@ public class MainActivity extends AppCompatActivity {
         btnSaveEntries = findViewById(R.id.btn_save_entries);
         btnLoadPools = findViewById(R.id.btn_load_pools);
         btnSavePools = findViewById(R.id.btn_save_pools);
+        btnAddCategory = findViewById(R.id.btn_add_category);
+        btnRemoveCategory = findViewById(R.id.btn_remove_category);
 
         radioGroupSections = findViewById(R.id.radio_group_sections);
         cardControlPanel = findViewById(R.id.card_control_panel);
@@ -201,11 +208,14 @@ public class MainActivity extends AppCompatActivity {
         cardPools = findViewById(R.id.card_pools);
 
         btnStartStop.setOnClickListener(v -> onStartStopClicked());
+        btnReset.setOnClickListener(v -> onResetClicked());
         btnEnd.setOnClickListener(v -> onEndClicked());
         btnLoadEntries.setOnClickListener(v -> loadEntriesFileLauncher.launch(new String[]{"text/plain"}));
         btnSaveEntries.setOnClickListener(v -> saveEntriesFileLauncher.launch("MetaDataProjectTime.txt"));
         btnLoadPools.setOnClickListener(v -> loadPoolsFileLauncher.launch(new String[]{"text/plain"}));
         btnSavePools.setOnClickListener(v -> savePoolsFileLauncher.launch("MetaDataDailyTimePools.txt"));
+        btnAddCategory.setOnClickListener(v -> showAddCategoryDialog());
+        btnRemoveCategory.setOnClickListener(v -> showRemoveCategoryDialog());
 
         // Setup radio group listener
         radioGroupSections.setOnCheckedChangeListener((group, checkedId) -> {
@@ -226,8 +236,14 @@ public class MainActivity extends AppCompatActivity {
         spinnerReminder.setAdapter(reminderAdapter);
         spinnerReminder.setText(reminderChoices[0], false);
         spinnerReminder.setOnItemClickListener((parent, view, position, id) -> {
-            reminderIntervalSeconds = REMINDER_INTERVAL_CHOICES[position] * 60;
-            updateNextReminder();
+            updateReminderInterval();
+        });
+
+        // Handle custom input when focus is lost
+        spinnerReminder.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                updateReminderInterval();
+            }
         });
 
         // Project and category spinners
@@ -244,6 +260,20 @@ public class MainActivity extends AppCompatActivity {
             updateTotalDurations();
             updatePoolTime();
         });
+    }
+
+    private void updateReminderInterval() {
+        try {
+            String text = spinnerReminder.getText().toString().trim();
+            if (!text.isEmpty()) {
+                int minutes = Integer.parseInt(text);
+                reminderIntervalSeconds = minutes * 60;
+                updateNextReminder();
+            }
+        } catch (NumberFormatException e) {
+            // Invalid input, keep current value
+            Toast.makeText(this, "Invalid reminder interval", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void updateSpinnerData() {
@@ -354,6 +384,20 @@ public class MainActivity extends AppCompatActivity {
             btnStartStop.setText(R.string.pause);
             updateNextReminder();
         }
+        updateButtonVisibility();
+    }
+
+    private void onResetClicked() {
+        if (firstStartDatetime == null) {
+            return;
+        }
+
+        // Reset state without saving
+        resetState();
+
+        // Update UI
+        updateTotalDurations();
+        updatePoolTime();
     }
 
     private void onEndClicked() {
@@ -395,6 +439,13 @@ public class MainActivity extends AppCompatActivity {
         btnStartStop.setText(R.string.start);
         tvCurrentDuration.setText(TimeUtils.formatDuration(0));
         tvStartDate.setText("-");
+        updateButtonVisibility();
+    }
+
+    private void updateButtonVisibility() {
+        boolean timerActive = isRunning || isPaused;
+        btnReset.setVisibility(timerActive ? View.VISIBLE : View.GONE);
+        btnEnd.setVisibility(timerActive ? View.VISIBLE : View.GONE);
     }
 
     private long getCurrentSessionSeconds() {
@@ -446,7 +497,8 @@ public class MainActivity extends AppCompatActivity {
 
         if (dailyMinutes <= 0) {
             tvPoolTime.setText("-");
-            tvPoolTime.setTextColor(getResources().getColor(R.color.text_primary, null));
+            // Use default text color
+            tvPoolTime.setTextColor(tvStartDate.getCurrentTextColor());
             return;
         }
 
@@ -493,8 +545,8 @@ public class MainActivity extends AppCompatActivity {
     private void flashAndBeep() {
         // Flash color
         int currentColor = tvCurrentDuration.getCurrentTextColor();
-        int flashColor = getResources().getColor(R.color.reminder_flash, null);
-        int normalColor = getResources().getColor(R.color.text_primary, null);
+        int flashColor = getResources().getColor(R.color.colorAccent, null);
+        int normalColor = tvStartDate.getCurrentTextColor();
         tvCurrentDuration.setTextColor(currentColor == flashColor ? normalColor : flashColor);
 
         // Beep
@@ -821,5 +873,98 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Error saving file: " + e.getMessage(), Toast.LENGTH_LONG).show();
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Show dialog to add a new category.
+     */
+    private void showAddCategoryDialog() {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_category, null);
+        com.google.android.material.textfield.TextInputEditText etCategoryName =
+                dialogView.findViewById(R.id.et_category_name);
+        com.google.android.material.textfield.TextInputEditText etDailyMinutes =
+                dialogView.findViewById(R.id.et_daily_minutes);
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.add_category)
+                .setView(dialogView)
+                .setPositiveButton(R.string.add, (dialog, which) -> {
+                    String categoryName = etCategoryName.getText().toString().trim();
+                    String dailyMinutesStr = etDailyMinutes.getText().toString().trim();
+
+                    if (categoryName.isEmpty()) {
+                        Toast.makeText(this, "Category name cannot be empty", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // Check if category already exists
+                    if (dailyTimePoolRepository.getAllCategories().contains(categoryName)) {
+                        Toast.makeText(this, "Category already exists", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    int dailyMinutes = 0;
+                    if (!dailyMinutesStr.isEmpty()) {
+                        try {
+                            dailyMinutes = Integer.parseInt(dailyMinutesStr);
+                        } catch (NumberFormatException e) {
+                            Toast.makeText(this, "Invalid daily minutes", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    }
+
+                    dailyTimePoolRepository.setDailyMinutes(categoryName, dailyMinutes);
+                    poolAdapter.updateData(getPoolData());
+                    updateSpinnerData();
+                    updatePoolTime();
+                    Toast.makeText(this, "Category added", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    /**
+     * Show dialog to remove a category.
+     */
+    private void showRemoveCategoryDialog() {
+        List<String> categories = dailyTimePoolRepository.getAllCategories();
+        if (categories.isEmpty()) {
+            Toast.makeText(this, "No categories to remove", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String[] categoryArray = categories.toArray(new String[0]);
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.remove_category)
+                .setItems(categoryArray, (dialog, which) -> {
+                    String categoryToRemove = categoryArray[which];
+                    new AlertDialog.Builder(this)
+                            .setTitle(R.string.confirm_delete)
+                            .setMessage("Remove category \"" + categoryToRemove + "\"?")
+                            .setPositiveButton(R.string.delete, (d, w) -> {
+                                // Remove all entries with this category
+                                timeEntryRepository.removeEntriesByCategory(categoryToRemove);
+
+                                // Remove the category from pools
+                                dailyTimePoolRepository.removeCategory(categoryToRemove);
+
+                                // Reset category selection if it was the removed one
+                                if (categoryToRemove.equals(spinnerCategory.getText().toString())) {
+                                    spinnerCategory.setText("", false);
+                                }
+
+                                // Update UI
+                                poolAdapter.updateData(getPoolData());
+                                refreshEntryList();
+                                updateSpinnerData();
+                                updatePoolTime();
+                                Toast.makeText(this, "Category and its entries removed", Toast.LENGTH_SHORT).show();
+                            })
+                            .setNegativeButton(R.string.cancel, null)
+                            .show();
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 }

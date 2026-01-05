@@ -11,9 +11,9 @@
         android:id="@+id/tv_pool_category"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1.5"
-        android:textSize="14sp"
-        android:textColor="@color/text_primary" />
+        android:layout_weight="1.4"
+        android:gravity="start"
+        android:textSize="14sp" />
 
     <EditText
         android:id="@+id/et_pool_daily_minutes"
@@ -31,16 +31,14 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:gravity="center"
-        android:textSize="14sp"
-        android:textColor="@color/text_primary" />
+        android:textSize="14sp" />
 
     <TextView
         android:id="@+id/tv_pool_total"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="0.8"
+        android:layout_weight="1"
         android:gravity="center"
-        android:textSize="14sp"
-        android:textColor="@color/text_primary" />
+        android:textSize="14sp" />
 
 </LinearLayout>

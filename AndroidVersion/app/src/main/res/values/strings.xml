@@ -6,35 +6,44 @@
     <string name="start">Start</string>
     <string name="pause">Pause</string>
     <string name="resume">Resume</string>
+    <string name="reset">Reset</string>
     <string name="end">End</string>
     <string name="remove">Remove</string>
     <string name="add">Add</string>
     <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>
 
-    <!-- Labels -->
-    <string name="reminder">Reminder [min]</string>
-    <string name="project">Project</string>
-    <string name="category">Category</string>
-    <string name="current">Current entry time</string>
-    <string name="total_project">Total project time</string>
-    <string name="total_category">Total category time</string>
-    <string name="pool">Category pool time</string>
-    <string name="total">Total</string>
-    <string name="started_at">Start date</string>
-    <string name="started">Started</string>
-    <string name="duration">Duration</string>
-    <string name="control_panel">Control Panel</string>
+    <!-- Labels Section Selector -->
+    <string name="control_header">Control Panel</string>
     <string name="entries_header">Time Entries</string>
     <string name="pools_header">Category Time Pools</string>
-    <string name="daily_minutes">Daily (min)</string>
-    <string name="pool_time">Pool Time</string>
-    <string name="category_name">Category Name</string>
+
+    <!-- Labels Control Panel -->
+    <string name="cp_category">Category</string>
+    <string name="cp_project">Project</string>
+    <string name="cp_reminder_minutes">Reminder [min]</string>
+    <string name="cp_current_entry_time">Current entry time</string>
+    <string name="cp_category_pool_time">Category pool time</string>
+    <string name="cp_total_project_time">Total project time</string>
+    <string name="cp_total_category_time">Total category time</string>
+    <string name="cp_start_date">Start date</string>
+
+    <!-- Labels Time Entries -->
+    <string name="te_duration">Duration:</string>
+    <string name="te_started">Started:</string>
+
+    <!-- Labels Category Time Pools -->
+    <string name="ctp_category">Category:</string>
+    <string name="ctp_daily_minutes">Daily [min]:</string>
+    <string name="ctp_pool_time">Pool Time:</string>
+    <string name="ctp_total_time">Total Time:</string>
+    <string name="ctp_category_name">Category Name</string>
 
     <!-- Dialogs -->
     <string name="confirm_delete">Confirm Delete</string>
     <string name="confirm_delete_message">Are you sure you want to delete this entry?</string>
     <string name="add_category">Add Category</string>
+    <string name="remove_category">Remove Category</string>
 
     <!-- Activities -->
     <string name="category_pools_title">Category Time Pools</string>

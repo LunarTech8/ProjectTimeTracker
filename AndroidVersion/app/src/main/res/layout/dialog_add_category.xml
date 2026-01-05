@@ -10,7 +10,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="@string/category_name"
+        android:hint="@string/ctp_category_name"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         android:layout_marginBottom="16dp">
 
@@ -25,7 +25,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="@string/daily_minutes"
+        android:hint="@string/ctp_daily_minutes"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
         <com.google.android.material.textfield.TextInputEditText
