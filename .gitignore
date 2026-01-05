@@ -199,3 +199,61 @@ AndroidVersion/*.apk
 AndroidVersion/*.aab
 AndroidVersion/*.ap_
 AndroidVersion/*.dex
+
+# Gradle files
+!AndroidVersion/gradle/wrapper/gradle-wrapper.properties
+AndroidVersion/gradlew
+AndroidVersion/gradlew.bat
+
+# Android Studio / IntelliJ IDEA
+AndroidVersion/.idea/workspace.xml
+AndroidVersion/.idea/tasks.xml
+AndroidVersion/.idea/gradle.xml
+AndroidVersion/.idea/assetWizardSettings.xml
+AndroidVersion/.idea/dictionaries
+AndroidVersion/.idea/libraries
+AndroidVersion/.idea/jarRepositories.xml
+AndroidVersion/.idea/compiler.xml
+AndroidVersion/.idea/androidTestResultsUserPreferences.xml
+AndroidVersion/.idea/.name
+AndroidVersion/.idea/modules.xml
+AndroidVersion/.idea/*.iml
+AndroidVersion/.idea/modules
+AndroidVersion/*.ipr
+AndroidVersion/*.iws
+
+# OS-specific files
+AndroidVersion/.DS_Store
+AndroidVersion/Thumbs.db
+
+# Keystore files (security sensitive)
+AndroidVersion/*.jks
+AndroidVersion/*.keystore
+
+# Google Services (API keys, etc)
+AndroidVersion/google-services.json
+
+# Freeline
+AndroidVersion/freeline.py
+AndroidVersion/freeline/
+AndroidVersion/freeline_project_description.json
+
+# fastlane
+AndroidVersion/fastlane/report.xml
+AndroidVersion/fastlane/Preview.html
+AndroidVersion/fastlane/screenshots
+AndroidVersion/fastlane/test_output
+AndroidVersion/fastlane/readme.md
+
+# Version control
+AndroidVersion/.vcs/
+
+# lint
+AndroidVersion/lint/intermediates/
+AndroidVersion/lint/generated/
+AndroidVersion/lint/outputs/
+AndroidVersion/lint/tmp/
+AndroidVersion/lint-baseline.xml
+
+# Android Profiling
+AndroidVersion/*.hprof

@@ -795,7 +795,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // Refresh UI
                 updatePoolTime();
-                poolAdapter.notifyDataSetChanged();
+                poolAdapter.updateData(getPoolData());
 
                 Toast.makeText(this, "Pools loaded successfully", Toast.LENGTH_SHORT).show();
             }
