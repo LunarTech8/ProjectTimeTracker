@@ -5,15 +5,21 @@ An Android port of the Project Time Tracker desktop application, built with Java
 ## Features
 
 - **Time Tracking**: Start, pause, resume, reset, and end time entries for projects and categories
-- **Reminders**: Configurable reminder intervals with custom input support, includes vibration and sound alerts
+- **Background Reminders**: Configurable reminder intervals with custom input support
+  - Beeps and vibration work even when app is in background or phone is locked
+  - Visual flashing of current time when app is active
+  - Notifications for reminder alerts
+  - Uses AlarmManager for precise timing in all power states
 - **Daily Time Pools**: Track daily time budgets for categories and view remaining pool time
 - **Category Management**: Add new categories and remove existing ones (with cascade deletion of entries)
 - **Three-Section Interface**: Radio button selector for Control Panel, Time Entries, and Category Time Pools
-- **Dark Mode Support**: Automatic theme switching based on system settings
+- **Dark Mode Support**: Automatic theme switching based on system settings with customizable color scheme
 - **File Import/Export**: Load and save data files compatible with Python/Web versions
 - **Persistent Storage**: Uses SharedPreferences with JSON serialization
 - **Material Design**: Modern Android UI with Material 3 components
 - **Category Filtering**: Projects dropdown automatically filters based on selected category
+- **State Persistence**: Project and category selections persist when switching apps
+- **No Autocorrect**: Category and project input fields don't show spell-check underlines
 
 ## Data File Compatibility
 
@@ -128,7 +134,18 @@ The app automatically switches between light and dark themes based on your devic
   - End: Saves the entry and stops tracking
 
 ### Custom Reminder Intervals
-You can either select from predefined intervals (0, 15, 30, 60, 120 minutes) or type any custom value in minutes.
+You can either select from predefined intervals (0, 15, 30, 60, 120 minutes) or type any custom value in minutes. Reminders work in all states:
+- **Foreground**: Beeps, vibration, flashing text, and notification
+- **Background**: Beeps, vibration, and notification
+- **Phone Locked**: Beeps, vibration, and notification
+- Reminders are cancelled automatically when pausing, resetting, or ending the timer
+
+### Background Operation
+The app uses AlarmManager with exact alarm permissions to ensure reminders fire reliably:
+- Works in Doze mode and battery optimization
+- Permissions required: SCHEDULE_EXACT_ALARM, USE_EXACT_ALARM
+- Visual flashing only occurs when app is visible
+- All alarms are properly cancelled when timer is paused or stopped
 
 ### Category Management
 - **Add Category**: Enter a new category name and daily time budget. Duplicate names are prevented.

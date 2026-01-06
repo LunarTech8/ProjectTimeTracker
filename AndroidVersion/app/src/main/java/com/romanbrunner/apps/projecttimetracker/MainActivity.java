@@ -1,15 +1,14 @@
 package com.romanbrunner.apps.projecttimetracker;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.media.AudioManager;
-import android.media.ToneGenerator;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -47,12 +46,15 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    // Static reference for callbacks from BroadcastReceiver
+    private static MainActivity currentInstance;
+
     // Configuration constants (matching Python version)
     private static final int[] REMINDER_INTERVAL_CHOICES = {0, 15, 30, 60, 120}; // minutes
     private static final int UPDATE_INTERVAL = 1000; // milliseconds
-    private static final int REMINDER_ALERT_DURATION = 3000; // milliseconds
-    private static final int REMINDER_BEEP_INTERVAL = 250; // milliseconds
-    private static final int REMINDER_BEEP_FREQUENCY = 3000; // Hz
+    private static final int REMINDER_REQUEST_CODE = 1000;
+    private static final int FLASH_DURATION = 3000; // milliseconds
+    private static final int FLASH_INTERVAL = 250; // milliseconds
 
     // UI Components
     private Button btnStartStop;
@@ -90,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
     private DailyTimePoolRepository dailyTimePoolRepository;
     private TimeEntryAdapter adapter;
     private PoolAdapter poolAdapter;
+    private AlarmManager alarmManager;
 
     // State
     private Date firstStartDatetime = null;
@@ -97,9 +100,9 @@ public class MainActivity extends AppCompatActivity {
     private long accumulatedDurationSeconds = 0;
     private int reminderIntervalSeconds = 0;
     private int nextReminderSeconds = 0;
-    private Date alertUntilDatetime = null;
     private boolean isRunning = false;
     private boolean isPaused = false;
+    private Date flashUntilDatetime = null;
 
     // Handler for periodic updates
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -113,16 +116,18 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private final Runnable alertRunnable = new Runnable() {
+    private final Runnable flashRunnable = new Runnable() {
         @Override
         public void run() {
-            if (alertUntilDatetime != null && new Date().before(alertUntilDatetime)) {
-                flashAndBeep();
-                handler.postDelayed(this, REMINDER_BEEP_INTERVAL);
+            if (flashUntilDatetime != null && new Date().before(flashUntilDatetime)) {
+                toggleFlash();
+                handler.postDelayed(this, FLASH_INTERVAL);
             } else {
-                alertUntilDatetime = null;
+                flashUntilDatetime = null;
                 // Reset to default text color
-                tvCurrentDuration.setTextColor(tvStartDate.getCurrentTextColor());
+                if (tvCurrentDuration != null) {
+                    tvCurrentDuration.setTextColor(tvStartDate.getCurrentTextColor());
+                }
             }
         }
     };
@@ -138,6 +143,7 @@ public class MainActivity extends AppCompatActivity {
         // Initialize repositories
         timeEntryRepository = new TimeEntryRepository(this);
         dailyTimePoolRepository = new DailyTimePoolRepository(this);
+        alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
         // Initialize UI
         initializeViews();
@@ -155,15 +161,23 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         handler.removeCallbacks(updateRunnable);
-        handler.removeCallbacks(alertRunnable);
+        handler.removeCallbacks(flashRunnable);
+        cancelReminderAlarm();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        currentInstance = this;
         // Refresh data when returning from CategoryPoolsActivity
         updatePoolTime();
         updateSpinnerData();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        currentInstance = null;
     }
 
     @Override
@@ -300,10 +314,20 @@ public class MainActivity extends AppCompatActivity {
         Collections.sort(projects);
         ArrayAdapter<String> projectAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_dropdown_item_1line, projects);
+
+        // Save current project selection before updating adapter
+        String currentProject = spinnerProject.getText().toString();
+
         spinnerProject.setAdapter(projectAdapter);
-        // Reset to first project in the filtered list
+
+        // Only set to first project if current selection is empty or not in the list
         if (!projects.isEmpty()) {
-            spinnerProject.setText(projects.get(0), false);
+            if (currentProject.isEmpty() || !projects.contains(currentProject)) {
+                spinnerProject.setText(projects.get(0), false);
+            } else {
+                // Restore the current project selection if it's still valid
+                spinnerProject.setText(currentProject, false);
+            }
         }
     }
 
@@ -376,6 +400,7 @@ public class MainActivity extends AppCompatActivity {
             isPaused = true;
             accumulatedDurationSeconds += getCurrentSessionSeconds();
             currentStartDatetime = null;
+            cancelReminderAlarm();
             btnStartStop.setText(R.string.resume);
         } else {
             // Resume
@@ -430,6 +455,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void resetState() {
+        cancelReminderAlarm();
         firstStartDatetime = null;
         currentStartDatetime = null;
         accumulatedDurationSeconds = 0;
@@ -465,10 +491,15 @@ public class MainActivity extends AppCompatActivity {
         updateTotalDurations();
         updatePoolTime();
 
-        // Check for reminder
+        // Check for reminder - AlarmManager handles the actual triggering
+        // This is just a fallback check in case we missed a scheduled alarm
         if (nextReminderSeconds > 0 && reminderIntervalSeconds > 0 && totalSeconds >= nextReminderSeconds) {
-            triggerReminder();
+            // Time has passed the reminder point, reschedule for next interval
             nextReminderSeconds += reminderIntervalSeconds;
+            long delayMillis = (nextReminderSeconds - totalSeconds) * 1000;
+            if (delayMillis > 0) {
+                scheduleReminderAlarm(delayMillis);
+            }
         }
     }
 
@@ -529,37 +560,89 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateNextReminder() {
+        // Cancel any existing alarms
+        cancelReminderAlarm();
+
         if (reminderIntervalSeconds > 0 && isRunning && !isPaused) {
             long currentSeconds = getTotalCurrentDurationSeconds();
             nextReminderSeconds = (int) ((currentSeconds / reminderIntervalSeconds) + 1) * reminderIntervalSeconds;
+
+            // Schedule next alarm
+            long delayMillis = (nextReminderSeconds - currentSeconds) * 1000;
+            if (delayMillis > 0) {
+                scheduleReminderAlarm(delayMillis);
+            }
         } else {
             nextReminderSeconds = 0;
         }
     }
 
-    private void triggerReminder() {
-        alertUntilDatetime = new Date(System.currentTimeMillis() + REMINDER_ALERT_DURATION);
-        handler.post(alertRunnable);
+    private void scheduleReminderAlarm(long delayMillis) {
+        if (alarmManager == null || reminderIntervalSeconds <= 0) {
+            return;
+        }
+
+        // Check if we have permission to schedule exact alarms (Android 12+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!alarmManager.canScheduleExactAlarms()) {
+                Toast.makeText(this, "Exact alarm permission needed for reminders", Toast.LENGTH_LONG).show();
+                return;
+            }
+        }
+
+        Intent intent = new Intent(this, ReminderReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+            this,
+            REMINDER_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        long triggerTime = System.currentTimeMillis() + delayMillis;
+
+        // Use setExactAndAllowWhileIdle for precise timing even in Doze mode
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            triggerTime,
+            pendingIntent
+        );
     }
 
-    private void flashAndBeep() {
-        // Flash color
+    private void cancelReminderAlarm() {
+        if (alarmManager == null) {
+            return;
+        }
+
+        Intent intent = new Intent(this, ReminderReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+            this,
+            REMINDER_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        alarmManager.cancel(pendingIntent);
+    }
+
+    public static void triggerFlashIfActive() {
+        if (currentInstance != null) {
+            currentInstance.runOnUiThread(() -> currentInstance.startFlashing());
+        }
+    }
+
+    private void startFlashing() {
+        flashUntilDatetime = new Date(System.currentTimeMillis() + FLASH_DURATION);
+        handler.post(flashRunnable);
+    }
+
+    private void toggleFlash() {
+        if (tvCurrentDuration == null || tvStartDate == null) {
+            return;
+        }
         int currentColor = tvCurrentDuration.getCurrentTextColor();
         int flashColor = getResources().getColor(R.color.colorAccent, null);
         int normalColor = tvStartDate.getCurrentTextColor();
         tvCurrentDuration.setTextColor(currentColor == flashColor ? normalColor : flashColor);
-
-        // Beep
-        try {
-            ToneGenerator toneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100);
-            toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP, 200);
-        } catch (Exception e) {
-            // Fallback to vibration
-            Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-            if (vibrator != null) {
-                vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE));
-            }
-        }
     }
 
     private void refreshEntryList() {
