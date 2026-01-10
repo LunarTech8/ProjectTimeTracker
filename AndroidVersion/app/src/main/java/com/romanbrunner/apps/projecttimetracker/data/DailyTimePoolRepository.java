@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.romanbrunner.apps.projecttimetracker.model.DailyTimePool;
+import com.romanbrunner.apps.projecttimetracker.util.PreferencesManager;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -25,22 +26,20 @@ import java.util.Set;
  * Repository for managing daily time pool data persistence.
  */
 public class DailyTimePoolRepository {
-    private static final String PREFS_NAME = "daily_time_pools_prefs";
-    private static final String KEY_POOLS = "daily_time_pools";
     private static final String FIELD_SEPARATOR = " --- ";
 
-    private final SharedPreferences prefs;
+    private final PreferencesManager preferencesManager;
     private final Gson gson;
     private Map<String, Integer> pools; // category -> daily minutes
 
     public DailyTimePoolRepository(Context context) {
-        prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        preferencesManager = new PreferencesManager(context);
         gson = new Gson();
         loadPools();
     }
 
     private void loadPools() {
-        String json = prefs.getString(KEY_POOLS, null);
+        String json = preferencesManager.getTimePoolsJson();
         if (json != null) {
             Type type = new TypeToken<HashMap<String, Integer>>(){}.getType();
             pools = gson.fromJson(json, type);
@@ -54,7 +53,7 @@ public class DailyTimePoolRepository {
 
     private void savePools() {
         String json = gson.toJson(pools);
-        prefs.edit().putString(KEY_POOLS, json).apply();
+        preferencesManager.setTimePoolsJson(json);
     }
 
     public Set<String> getCategories() {

@@ -35,6 +35,7 @@ import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.romanbrunner.apps.projecttimetracker.data.DailyTimePoolRepository;
 import com.romanbrunner.apps.projecttimetracker.data.TimeEntryRepository;
 import com.romanbrunner.apps.projecttimetracker.model.TimeEntry;
+import com.romanbrunner.apps.projecttimetracker.util.PreferencesManager;
 import com.romanbrunner.apps.projecttimetracker.util.TimeUtils;
 
 import java.io.InputStream;
@@ -50,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private static MainActivity currentInstance;
 
     // Configuration constants (matching Python version)
-    private static final int[] REMINDER_INTERVAL_CHOICES = {0, 15, 30, 60, 120}; // minutes
+    private static final int[] REMINDER_INTERVAL_CHOICES = {0, 15, 30, 45, 60, 90, 120}; // minutes
     private static final int UPDATE_INTERVAL = 1000; // milliseconds
     private static final int REMINDER_REQUEST_CODE = 1000;
     private static final int FLASH_DURATION = 3000; // milliseconds
@@ -90,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
     // Data
     private TimeEntryRepository timeEntryRepository;
     private DailyTimePoolRepository dailyTimePoolRepository;
+    private PreferencesManager preferencesManager;
     private TimeEntryAdapter adapter;
     private PoolAdapter poolAdapter;
     private AlarmManager alarmManager;
@@ -103,6 +105,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean isRunning = false;
     private boolean isPaused = false;
     private Date flashUntilDatetime = null;
+    private boolean isInitialSetup = true; // Flag to track initial app setup
 
     // Handler for periodic updates
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -140,9 +143,10 @@ public class MainActivity extends AppCompatActivity {
         // Initialize file pickers
         initializeFilePickers();
 
-        // Initialize repositories
+        // Initialize repositories and preferences
         timeEntryRepository = new TimeEntryRepository(this);
         dailyTimePoolRepository = new DailyTimePoolRepository(this);
+        preferencesManager = new PreferencesManager(this);
         alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
         // Initialize UI
@@ -152,6 +156,12 @@ public class MainActivity extends AppCompatActivity {
         setupPoolsRecyclerView();
         updateTotalDurations();
         updatePoolTime();
+
+        // Restore reminder interval
+        restoreReminderInterval();
+
+        // Mark initial setup complete after spinners are set up
+        isInitialSetup = false;
 
         // Start periodic updates
         handler.post(updateRunnable);
@@ -265,11 +275,21 @@ public class MainActivity extends AppCompatActivity {
 
         // Listen for changes
         spinnerProject.setOnItemClickListener((parent, view, position, id) -> {
+            String selectedProject = spinnerProject.getText().toString();
+            // Save the selected project
+            if (!isInitialSetup) {
+                preferencesManager.setLastProject(selectedProject);
+            }
             updateTotalDurations();
             updatePoolTime();
         });
 
         spinnerCategory.setOnItemClickListener((parent, view, position, id) -> {
+            String selectedCategory = spinnerCategory.getText().toString();
+            // Save the selected category
+            if (!isInitialSetup) {
+                preferencesManager.setLastCategory(selectedCategory);
+            }
             updateProjectsForCategory();
             updateTotalDurations();
             updatePoolTime();
@@ -282,11 +302,22 @@ public class MainActivity extends AppCompatActivity {
             if (!text.isEmpty()) {
                 int minutes = Integer.parseInt(text);
                 reminderIntervalSeconds = minutes * 60;
+                // Save the reminder interval
+                preferencesManager.setLastReminder(minutes);
                 updateNextReminder();
             }
         } catch (NumberFormatException e) {
             // Invalid input, keep current value
             Toast.makeText(this, "Invalid reminder interval", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void restoreReminderInterval() {
+        int lastReminder = preferencesManager.getLastReminder();
+        if (lastReminder > 0) {
+            spinnerReminder.setText(String.valueOf(lastReminder), false);
+            reminderIntervalSeconds = lastReminder * 60;
+            updateNextReminder();
         }
     }
 
@@ -301,7 +332,14 @@ public class MainActivity extends AppCompatActivity {
                 android.R.layout.simple_dropdown_item_1line, uniqueCategories);
         spinnerCategory.setAdapter(categoryAdapter);
         if (spinnerCategory.getText().toString().isEmpty() && !uniqueCategories.isEmpty()) {
-            spinnerCategory.setText(uniqueCategories.get(0), false);
+            // Try to restore last selected category
+            String lastCategory = preferencesManager.getLastCategory();
+            if (!lastCategory.isEmpty() && uniqueCategories.contains(lastCategory)) {
+                spinnerCategory.setText(lastCategory, false);
+            } else {
+                // Fall back to first category if no saved category or it doesn't exist
+                spinnerCategory.setText(uniqueCategories.get(0), false);
+            }
         }
 
         // Projects (filter by selected category)
@@ -320,10 +358,29 @@ public class MainActivity extends AppCompatActivity {
 
         spinnerProject.setAdapter(projectAdapter);
 
-        // Only set to first project if current selection is empty or not in the list
+        // Set project selection based on context
         if (!projects.isEmpty()) {
             if (currentProject.isEmpty() || !projects.contains(currentProject)) {
-                spinnerProject.setText(projects.get(0), false);
+                // During initial setup, try to restore last selected project
+                if (isInitialSetup) {
+                    String lastProject = preferencesManager.getLastProject();
+                    if (!lastProject.isEmpty() && projects.contains(lastProject)) {
+                        spinnerProject.setText(lastProject, false);
+                        return;
+                    }
+                }
+
+                // During runtime category change, select project with most time
+                String projectWithMostTime = projects.get(0);
+                long maxDuration = 0;
+                for (String project : projects) {
+                    long duration = timeEntryRepository.getTotalDurationForProject(project);
+                    if (duration > maxDuration) {
+                        maxDuration = duration;
+                        projectWithMostTime = project;
+                    }
+                }
+                spinnerProject.setText(projectWithMostTime, false);
             } else {
                 // Restore the current project selection if it's still valid
                 spinnerProject.setText(currentProject, false);
@@ -522,14 +579,40 @@ public class MainActivity extends AppCompatActivity {
         tvTotalCategoryDuration.setText(TimeUtils.formatDuration(totalCategory));
     }
 
+    /**
+     * Formats pool time for display. Shows "-" if pool time is 0 (no daily minutes set),
+     * otherwise shows the formatted duration with "-" prefix for negative values.
+     */
+    private String formatPoolTimeDisplay(long poolSeconds) {
+        if (poolSeconds == 0) {
+            return "-";
+        }
+        String timeStr = TimeUtils.formatDuration(Math.abs(poolSeconds));
+        return poolSeconds < 0 ? "-" + timeStr : timeStr;
+    }
+
+    /**
+     * Sets the pool time text and color based on the pool seconds value.
+     */
+    private void setPoolTimeDisplay(TextView textView, long poolSeconds) {
+        textView.setText(formatPoolTimeDisplay(poolSeconds));
+
+        if (poolSeconds == 0) {
+            // Use default text color for "-"
+            textView.setTextColor(tvStartDate.getCurrentTextColor());
+        } else if (poolSeconds >= 0) {
+            textView.setTextColor(getResources().getColor(R.color.pool_positive, null));
+        } else {
+            textView.setTextColor(getResources().getColor(R.color.pool_negative, null));
+        }
+    }
+
     private void updatePoolTime() {
         String category = spinnerCategory.getText().toString();
         int dailyMinutes = dailyTimePoolRepository.getDailyMinutes(category);
 
         if (dailyMinutes <= 0) {
-            tvPoolTime.setText("-");
-            // Use default text color
-            tvPoolTime.setTextColor(tvStartDate.getCurrentTextColor());
+            setPoolTimeDisplay(tvPoolTime, 0);
             return;
         }
 
@@ -549,14 +632,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         long remainingSeconds = poolSeconds - usedSeconds;
-        String timeStr = TimeUtils.formatDuration(Math.abs(remainingSeconds));
-        tvPoolTime.setText(remainingSeconds < 0 ? "-" + timeStr : timeStr);
-
-        if (remainingSeconds >= 0) {
-            tvPoolTime.setTextColor(getResources().getColor(R.color.pool_positive, null));
-        } else {
-            tvPoolTime.setTextColor(getResources().getColor(R.color.pool_negative, null));
-        }
+        setPoolTimeDisplay(tvPoolTime, remainingSeconds);
     }
 
     private void updateNextReminder() {
@@ -694,13 +770,7 @@ public class MainActivity extends AppCompatActivity {
             holder.etDailyMinutes.removeTextChangedListener(holder.textWatcher);
             holder.etDailyMinutes.setText(String.valueOf(item.dailyMinutes));
 
-            String poolTimeStr = TimeUtils.formatDuration(Math.abs(item.poolSeconds));
-            holder.tvPoolTime.setText(item.poolSeconds < 0 ? "-" + poolTimeStr : poolTimeStr);
-            if (item.poolSeconds >= 0) {
-                holder.tvPoolTime.setTextColor(getResources().getColor(R.color.pool_positive, null));
-            } else {
-                holder.tvPoolTime.setTextColor(getResources().getColor(R.color.pool_negative, null));
-            }
+            setPoolTimeDisplay(holder.tvPoolTime, item.poolSeconds);
 
             holder.tvTotalTime.setText(TimeUtils.formatDuration(item.totalSeconds));
 
@@ -724,13 +794,7 @@ public class MainActivity extends AppCompatActivity {
 
                     // Update pool time display
                     long newPoolSeconds = calculatePoolTime(item.category, minutes);
-                    String poolStr = TimeUtils.formatDuration(Math.abs(newPoolSeconds));
-                    holder.tvPoolTime.setText(newPoolSeconds < 0 ? "-" + poolStr : poolStr);
-                    if (newPoolSeconds >= 0) {
-                        holder.tvPoolTime.setTextColor(getResources().getColor(R.color.pool_positive, null));
-                    } else {
-                        holder.tvPoolTime.setTextColor(getResources().getColor(R.color.pool_negative, null));
-                    }
+                    setPoolTimeDisplay(holder.tvPoolTime, newPoolSeconds);
 
                     // Update main pool time if this is the selected category
                     if (item.category.equals(spinnerCategory.getText().toString())) {

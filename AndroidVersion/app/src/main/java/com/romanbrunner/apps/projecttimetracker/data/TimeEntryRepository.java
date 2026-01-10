@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.romanbrunner.apps.projecttimetracker.model.TimeEntry;
+import com.romanbrunner.apps.projecttimetracker.util.PreferencesManager;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -28,24 +29,22 @@ import java.util.Set;
  * Repository for managing time entry data persistence.
  */
 public class TimeEntryRepository {
-    private static final String PREFS_NAME = "time_entries_prefs";
-    private static final String KEY_ENTRIES = "time_entries";
     private static final String FIELD_SEPARATOR = " --- ";
     // Python format: %Y-%m-%d %H:%M:%S.%f
     private static final String PYTHON_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
 
-    private final SharedPreferences prefs;
+    private final PreferencesManager preferencesManager;
     private final Gson gson;
     private List<TimeEntry> entries;
 
     public TimeEntryRepository(Context context) {
-        prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        preferencesManager = new PreferencesManager(context);
         gson = new Gson();
         loadEntries();
     }
 
     private void loadEntries() {
-        String json = prefs.getString(KEY_ENTRIES, null);
+        String json = preferencesManager.getTimeEntriesJson();
         if (json != null) {
             Type type = new TypeToken<ArrayList<TimeEntry>>(){}.getType();
             entries = gson.fromJson(json, type);
@@ -59,7 +58,7 @@ public class TimeEntryRepository {
 
     private void saveEntries() {
         String json = gson.toJson(entries);
-        prefs.edit().putString(KEY_ENTRIES, json).apply();
+        preferencesManager.setTimeEntriesJson(json);
     }
 
     public List<TimeEntry> getAllEntries() {

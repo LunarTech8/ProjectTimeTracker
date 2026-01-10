@@ -11,14 +11,16 @@ An Android port of the Project Time Tracker desktop application, built with Java
   - Notifications for reminder alerts
   - Uses AlarmManager for precise timing in all power states
 - **Daily Time Pools**: Track daily time budgets for categories and view remaining pool time
+- **Smart Project Selection**: When changing categories, automatically selects the project with the most time
+- **State Persistence**: Category, project, and reminder interval selections persist across app restarts
 - **Category Management**: Add new categories and remove existing ones (with cascade deletion of entries)
 - **Three-Section Interface**: Radio button selector for Control Panel, Time Entries, and Category Time Pools
 - **Dark Mode Support**: Automatic theme switching based on system settings with customizable color scheme
 - **File Import/Export**: Load and save data files compatible with Python/Web versions
-- **Persistent Storage**: Uses SharedPreferences with JSON serialization
+- **Persistent Storage**: Uses SharedPreferences with JSON serialization via centralized PreferencesManager
 - **Material Design**: Modern Android UI with Material 3 components
 - **Category Filtering**: Projects dropdown automatically filters based on selected category
-- **State Persistence**: Project and category selections persist when switching apps
+- **State Persistence**: Category, project, and reminder selections persist across app restarts and when switching apps
 - **No Autocorrect**: Category and project input fields don't show spell-check underlines
 
 ## Data File Compatibility
@@ -53,6 +55,7 @@ AndroidVersion/
 │   │       │   │   ├── TimeEntryRepository.java
 │   │       │   │   └── DailyTimePoolRepository.java
 │   │       │   └── util/
+│   │       │       ├── PreferencesManager.java
 │   │       │       └── TimeUtils.java
 │   │       ├── res/
 │   │       │   ├── layout/
@@ -103,7 +106,7 @@ The app has three main sections accessible via radio buttons:
 - **Pool Editor**: Table showing:
   - Category name
   - Daily minutes (editable)
-  - Pool time remaining/exceeded (color-coded, with minus sign if negative)
+  - Pool time remaining/exceeded (color-coded, shows "-" when no budget set, minus sign if negative)
   - Total time spent
 - Changes save automatically
 
@@ -153,10 +156,11 @@ The app uses AlarmManager with exact alarm permissions to ensure reminders fire 
 - If the removed category is currently selected, the selection is automatically reset.
 
 ### Category-Filtered Projects
-When you select a category, the project dropdown automatically shows only projects that have entries in that category, making it easier to find the right project.
+When you select a category, the project dropdown automatically shows only projects that have entries in that category. During app startup, the last selected project is restored. When changing categories during runtime, the project with the most recorded time in that category is automatically selected.
 
 ### Pool Time Calculation
 Pool time = (Daily minutes × Days since first entry) - Total time spent
+- Displayed as "-" if no daily minutes are set for the category
 - Displayed in green if time remaining
 - Displayed in red with minus sign if over budget
 
@@ -167,7 +171,10 @@ To transfer files between PC and Android emulator:
 3. Use Load buttons to import data
 
 ### Storage
-- **Internal**: SharedPreferences stores data between sessions
+- **Internal**: SharedPreferences stores data between sessions, managed centrally via PreferencesManager
+  - App state preferences (category, project, reminder selections)
+  - Time entries data
+  - Daily time pools data
 - **Import/Export**: Text files for cross-platform compatibility
 
 ## Package Name
