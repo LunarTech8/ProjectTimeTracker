@@ -8,4 +8,8 @@
     <!-- Special colors -->
     <color name="pool_positive">#4CAF50</color>
     <color name="pool_negative">#F44336</color>
+
+    <!-- Section selector colors -->
+    <color name="section_selected">#16A34A</color>
+    <color name="section_unselected">#555555</color>
 </resources>

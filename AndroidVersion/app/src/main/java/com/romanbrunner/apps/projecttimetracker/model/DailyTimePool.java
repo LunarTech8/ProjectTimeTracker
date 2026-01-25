@@ -3,7 +3,7 @@ package com.romanbrunner.apps.projecttimetracker.model;
 import java.io.Serializable;
 
 /**
- * Represents a daily time pool configuration for a category.
+ * Daily time pool configuration for a category.
  */
 public class DailyTimePool implements Serializable {
     private String category;

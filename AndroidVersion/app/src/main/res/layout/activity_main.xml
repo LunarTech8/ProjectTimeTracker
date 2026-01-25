@@ -28,44 +28,21 @@
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <!-- Section Selector -->
-        <RadioGroup
-            android:id="@+id/radio_group_sections"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_section_selector"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:paddingVertical="8dp"
-            android:paddingHorizontal="16dp">
-
-            <RadioButton
-                android:id="@+id/radio_control"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/control_header"
-                android:checked="true" />
-
-            <RadioButton
-                android:id="@+id/radio_entries"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/entries_header" />
-
-            <RadioButton
-                android:id="@+id/radio_pools"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/pools_header" />
-
-        </RadioGroup>
+            android:paddingHorizontal="4dp"
+            android:clipToPadding="false"
+            android:orientation="horizontal" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="8dp">
 
                 <!-- Control Panel -->
             <com.google.android.material.card.MaterialCardView
@@ -383,7 +360,140 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Category Time Pools -->
+            <!-- Time Overview -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_overview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone"
+                app:cardBackgroundColor="@color/colorPrimaryDark"
+                app:cardElevation="4dp"
+                app:cardCornerRadius="8dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_marginBottom="8dp">
+
+                        <Button
+                            android:id="@+id/btn_time_range_week_main"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_weight="1"
+                            android:text="@string/time_range_week"
+                            android:textSize="10sp"
+                            android:paddingHorizontal="4dp"
+                            android:paddingVertical="4dp"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            style="@style/Widget.Material3.Button" />
+
+                        <Button
+                            android:id="@+id/btn_time_range_month_main"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="2dp"
+                            android:text="@string/time_range_month"
+                            android:textSize="10sp"
+                            android:paddingHorizontal="4dp"
+                            android:paddingVertical="4dp"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            style="@style/Widget.Material3.Button" />
+
+                        <Button
+                            android:id="@+id/btn_time_range_year_main"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="2dp"
+                            android:text="@string/time_range_year"
+                            android:textSize="10sp"
+                            android:paddingHorizontal="4dp"
+                            android:paddingVertical="4dp"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            style="@style/Widget.Material3.Button" />
+
+                        <Button
+                            android:id="@+id/btn_time_range_full_main"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="2dp"
+                            android:text="@string/time_range_full"
+                            android:textSize="10sp"
+                            android:paddingHorizontal="4dp"
+                            android:paddingVertical="4dp"
+                            android:minWidth="0dp"
+                            android:minHeight="0dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            style="@style/Widget.Material3.Button" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_marginBottom="8dp">
+
+                        <ImageButton
+                            android:id="@+id/btn_time_prev_main"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:src="@android:drawable/ic_media_previous"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/previous" />
+
+                        <TextView
+                            android:id="@+id/tv_time_range_label_main"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text=""
+                            android:textSize="14sp"
+                            android:textColor="@android:color/white"
+                            android:gravity="center" />
+
+                        <ImageButton
+                            android:id="@+id/btn_time_next_main"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:src="@android:drawable/ic_media_next"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/next" />
+
+                    </LinearLayout>
+
+                    <com.github.mikephil.charting.charts.LineChart
+                        android:id="@+id/chart_main"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Time Pools -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_pools"
                 android:layout_width="match_parent"
@@ -396,17 +506,18 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:padding="8dp">
 
                     <!-- Load/Save Buttons -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:padding="8dp">
+                        android:paddingBottom="8dp">
 
                         <Button
-                            android:id="@+id/btn_load_pools"
+                            android:id="@+id/btn_load_pools_main"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -415,7 +526,7 @@
                             style="@style/Widget.Material3.Button" />
 
                         <Button
-                            android:id="@+id/btn_save_pools"
+                            android:id="@+id/btn_save_pools_main"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -426,32 +537,28 @@
 
                     </LinearLayout>
 
-                    <!-- Column Headers -->
+                    <!-- Header -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="16dp"
                         android:paddingVertical="8dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1.4"
+                            android:layout_weight="2"
                             android:text="@string/ctp_category"
-                            android:textSize="12sp"
                             android:textStyle="bold"
-                            android:textAppearance="?android:attr/textAppearanceSmall"
-                            android:gravity="start" />
+                            android:textColor="@android:color/white" />
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/ctp_daily_minutes"
-                            android:textSize="12sp"
                             android:textStyle="bold"
-                            android:textAppearance="?android:attr/textAppearanceSmall"
+                            android:textColor="@android:color/white"
                             android:gravity="center" />
 
                         <TextView
@@ -459,9 +566,8 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/ctp_pool_time"
-                            android:textSize="12sp"
                             android:textStyle="bold"
-                            android:textAppearance="?android:attr/textAppearanceSmall"
+                            android:textColor="@android:color/white"
                             android:gravity="center" />
 
                         <TextView
@@ -469,46 +575,46 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/ctp_total_time"
-                            android:textSize="12sp"
                             android:textStyle="bold"
-                            android:textAppearance="?android:attr/textAppearanceSmall"
+                            android:textColor="@android:color/white"
                             android:gravity="center" />
 
                     </LinearLayout>
 
-                    <!-- Pools RecyclerView -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="?android:attr/listDivider" />
+
                     <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rv_pools"
+                        android:id="@+id/rv_pools_main"
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:paddingHorizontal="16dp"
-                        android:paddingBottom="8dp"
-                        android:clipToPadding="false" />
+                        android:layout_weight="1" />
 
-                    <!-- Add/Remove Buttons -->
+                    <!-- Remove Category and Add Category Buttons -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:padding="8dp">
+                        android:layout_marginTop="8dp">
 
                         <Button
-                            android:id="@+id/btn_add_category"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/add_category"
-                            android:paddingHorizontal="8dp"
-                            style="@style/Widget.Material3.Button" />
-
-                        <Button
-                            android:id="@+id/btn_remove_category"
+                            android:id="@+id/btn_remove_category_main"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/remove_category"
+                            android:paddingHorizontal="8dp"
+                            style="@style/Widget.Material3.Button" />
+
+                        <Button
+                            android:id="@+id/btn_add_pool_main"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
                             android:layout_marginStart="8dp"
+                            android:text="@string/add_category"
                             android:paddingHorizontal="8dp"
                             style="@style/Widget.Material3.Button" />
 

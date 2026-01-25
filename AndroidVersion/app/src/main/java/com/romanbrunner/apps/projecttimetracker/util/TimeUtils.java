@@ -6,7 +6,7 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Utility class for time-related operations.
+ * Time-related utility functions.
  */
 public class TimeUtils {
 
@@ -24,7 +24,6 @@ public class TimeUtils {
         long hours = TimeUnit.SECONDS.toHours(totalSeconds);
         long minutes = TimeUnit.SECONDS.toMinutes(totalSeconds) % 60;
         long seconds = totalSeconds % 60;
-
         if (hours > 0) {
             return String.format(Locale.getDefault(), "%d:%02d:%02d", hours, minutes, seconds);
         } else {
@@ -74,7 +73,7 @@ public class TimeUtils {
             return 0;
         }
         long diffMillis = end.getTime() - start.getTime();
-        return (int) TimeUnit.MILLISECONDS.toDays(diffMillis) + 1;
+        return (int)TimeUnit.MILLISECONDS.toDays(diffMillis) + 1;
     }
 
     /**

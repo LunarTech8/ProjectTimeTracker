@@ -11,6 +11,13 @@ An Android port of the Project Time Tracker desktop application, built with Java
   - Notifications for reminder alerts
   - Uses AlarmManager for precise timing in all power states
 - **Daily Time Pools**: Track daily time budgets for categories and view remaining pool time
+- **Time Overview Charts**: Visualize time tracking data with interactive line charts
+  - Week mode: Shows daily hours for Monday-Sunday
+  - Month mode: Shows average daily hours per 4-day period
+  - Year mode: Shows average daily hours per month
+  - Full mode: Shows average daily hours across entire tracking history
+  - Smart navigation: Automatically jumps to nearest period with data
+  - Empty period skipping: Previous/Next buttons skip periods without entries
 - **Smart Project Selection**: When changing categories, automatically selects the project with the most time
 - **State Persistence**: Category, project, and reminder interval selections persist across app restarts
 - **Category Management**: Add new categories and remove existing ones (with cascade deletion of entries)
@@ -76,7 +83,7 @@ AndroidVersion/
 
 ## User Interface
 
-The app has three main sections accessible via radio buttons:
+The app has four main sections accessible via horizontal scrolling selector:
 
 ### 1. Control Panel
 - **Start/Pause/Resume Buttons**: Begin, pause, or resume time tracking
@@ -100,7 +107,7 @@ The app has three main sections accessible via radio buttons:
   - Start date/time
   - Remove button (delete icon)
 
-### 3. Category Time Pools
+### 3. Time Pools
 - **Load/Save Buttons**: Import/export MetaDataDailyTimePools.txt
 - **Add/Remove Buttons**: Manage categories (removal cascades to delete all associated entries)
 - **Pool Editor**: Table showing:
@@ -109,6 +116,20 @@ The app has three main sections accessible via radio buttons:
   - Pool time remaining/exceeded (color-coded, shows "-" when no budget set, minus sign if negative)
   - Total time spent
 - Changes save automatically
+
+### 4. Time Overview
+- **Mode Buttons**: Switch between Week, Month, Year, and Full views
+- **Navigation Arrows**: Move to previous/next period with data
+- **Line Chart**: Multi-category visualization with:
+  - Week: Total hours per day (Mon-Sun)
+  - Month: Average daily hours per 4-day period
+  - Year: Average daily hours per month
+  - Full: Average daily hours across 10 periods spanning all data
+- **Smart Navigation**:
+  - Auto-jumps to nearest period with data when opening or switching modes
+  - Previous/Next buttons skip empty periods
+  - Searches up to 52 periods (weeks/months/years) in each direction
+- **Legend**: Color-coded categories below chart
 
 ## Building
 
@@ -163,6 +184,18 @@ Pool time = (Daily minutes × Days since first entry) - Total time spent
 - Displayed as "-" if no daily minutes are set for the category
 - Displayed in green if time remaining
 - Displayed in red with minus sign if over budget
+
+### Time Overview Charts
+The overview section provides visual analysis of time tracking data:
+- **Automatic Navigation**: Opens to the most recent period with data (checks up to 52 periods back)
+- **Smart Period Skipping**: Navigation buttons skip empty periods to show only relevant data
+- **Multiple Time Scales**:
+  - Week view for daily tracking patterns
+  - Month view for weekly trends
+  - Year view for monthly patterns
+  - Full view for historical overview
+- **Chart Interaction**: Touch-enabled with pinch-to-zoom and pan gestures
+- **Index Correction**: Properly handles calendar calculations accounting for daysBetween offset
 
 ### File Transfer
 To transfer files between PC and Android emulator:

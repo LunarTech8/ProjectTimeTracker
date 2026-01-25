@@ -4,21 +4,19 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -30,6 +28,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.github.mikephil.charting.charts.LineChart;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.romanbrunner.apps.projecttimetracker.data.DailyTimePoolRepository;
@@ -40,22 +39,28 @@ import com.romanbrunner.apps.projecttimetracker.util.TimeUtils;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
+/**
+ * Main activity for time tracking.
+ */
 public class MainActivity extends AppCompatActivity {
+    // Constants:
+    private static final int[] REMINDER_INTERVAL_CHOICES = {0, 15, 30, 45, 60, 90, 120};
+    private static final int UPDATE_INTERVAL = 1000;
+    private static final int REMINDER_REQUEST_CODE = 1000;
+    private static final int FLASH_DURATION = 3000;
+    private static final int FLASH_INTERVAL = 250;
+    private static final int SECONDS_PER_HOUR = 3600;
+    private static final int SECONDS_PER_MINUTE = 60;
 
     // Static reference for callbacks from BroadcastReceiver
     private static MainActivity currentInstance;
-
-    // Configuration constants (matching Python version)
-    private static final int[] REMINDER_INTERVAL_CHOICES = {0, 15, 30, 45, 60, 90, 120}; // minutes
-    private static final int UPDATE_INTERVAL = 1000; // milliseconds
-    private static final int REMINDER_REQUEST_CODE = 1000;
-    private static final int FLASH_DURATION = 3000; // milliseconds
-    private static final int FLASH_INTERVAL = 250; // milliseconds
 
     // UI Components
     private Button btnStartStop;
@@ -70,30 +75,39 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvPoolTime;
     private TextView tvStartDate;
     private RecyclerView rvEntries;
-    private RecyclerView rvPools;
-    private RadioGroup radioGroupSections;
+    private RecyclerView rvSectionSelector;
     private MaterialCardView cardControlPanel;
     private MaterialCardView cardEntries;
+    private MaterialCardView cardOverview;
     private MaterialCardView cardPools;
+    private SectionSelectorAdapter sectionSelectorAdapter;
+    private int selectedSectionIndex = 0;
     private Button btnLoadEntries;
     private Button btnSaveEntries;
-    private Button btnLoadPools;
-    private Button btnSavePools;
-    private Button btnAddCategory;
-    private Button btnRemoveCategory;
+    private TimeOverviewChartManager chartManager;
+    private CategoryPoolsManager poolsManager;
+    private LineChart chartMain;
+    private RecyclerView rvPoolsMain;
+    private Button btnTimeRangeWeekMain;
+    private Button btnTimeRangeMonthMain;
+    private Button btnTimeRangeYearMain;
+    private Button btnTimeRangeFullMain;
+    private Button btnLoadPoolsMain;
+    private Button btnSavePoolsMain;
+    private Button btnRemoveCategoryMain;
+    private Button btnAddPoolMain;
+    private ActivityResultLauncher<String[]> loadPoolsFileLauncher;
+    private ActivityResultLauncher<String> savePoolsFileLauncher;
 
     // File pickers
     private ActivityResultLauncher<String[]> loadEntriesFileLauncher;
     private ActivityResultLauncher<String> saveEntriesFileLauncher;
-    private ActivityResultLauncher<String[]> loadPoolsFileLauncher;
-    private ActivityResultLauncher<String> savePoolsFileLauncher;
 
     // Data
     private TimeEntryRepository timeEntryRepository;
     private DailyTimePoolRepository dailyTimePoolRepository;
     private PreferencesManager preferencesManager;
     private TimeEntryAdapter adapter;
-    private PoolAdapter poolAdapter;
     private AlarmManager alarmManager;
 
     // State
@@ -139,31 +153,18 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        // Initialize file pickers
         initializeFilePickers();
-
-        // Initialize repositories and preferences
         timeEntryRepository = new TimeEntryRepository(this);
         dailyTimePoolRepository = new DailyTimePoolRepository(this);
         preferencesManager = new PreferencesManager(this);
-        alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-
-        // Initialize UI
+        alarmManager = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
         initializeViews();
         setupSpinners();
         setupRecyclerView();
-        setupPoolsRecyclerView();
         updateTotalDurations();
         updatePoolTime();
-
-        // Restore reminder interval
         restoreReminderInterval();
-
-        // Mark initial setup complete after spinners are set up
         isInitialSetup = false;
-
-        // Start periodic updates
         handler.post(updateRunnable);
     }
 
@@ -179,7 +180,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         currentInstance = this;
-        // Refresh data when returning from CategoryPoolsActivity
         updatePoolTime();
         updateSpinnerData();
     }
@@ -188,21 +188,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         currentInstance = null;
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == R.id.action_category_pools) {
-            startActivity(new Intent(this, CategoryPoolsActivity.class));
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
     }
 
     private void initializeViews() {
@@ -218,39 +203,51 @@ public class MainActivity extends AppCompatActivity {
         tvPoolTime = findViewById(R.id.tv_pool_time);
         tvStartDate = findViewById(R.id.tv_start_date);
         rvEntries = findViewById(R.id.rv_entries);
-        rvPools = findViewById(R.id.rv_pools);
         btnLoadEntries = findViewById(R.id.btn_load_entries);
         btnSaveEntries = findViewById(R.id.btn_save_entries);
-        btnLoadPools = findViewById(R.id.btn_load_pools);
-        btnSavePools = findViewById(R.id.btn_save_pools);
-        btnAddCategory = findViewById(R.id.btn_add_category);
-        btnRemoveCategory = findViewById(R.id.btn_remove_category);
-
-        radioGroupSections = findViewById(R.id.radio_group_sections);
+        rvSectionSelector = findViewById(R.id.rv_section_selector);
         cardControlPanel = findViewById(R.id.card_control_panel);
         cardEntries = findViewById(R.id.card_entries);
+        cardOverview = findViewById(R.id.card_overview);
         cardPools = findViewById(R.id.card_pools);
-
+        chartMain = findViewById(R.id.chart_main);
+        rvPoolsMain = findViewById(R.id.rv_pools_main);
+        btnTimeRangeWeekMain = findViewById(R.id.btn_time_range_week_main);
+        btnTimeRangeMonthMain = findViewById(R.id.btn_time_range_month_main);
+        btnTimeRangeYearMain = findViewById(R.id.btn_time_range_year_main);
+        btnTimeRangeFullMain = findViewById(R.id.btn_time_range_full_main);
+        ImageButton btnTimePrevMain = findViewById(R.id.btn_time_prev_main);
+        ImageButton btnTimeNextMain = findViewById(R.id.btn_time_next_main);
+        TextView tvTimeRangeLabelMain = findViewById(R.id.tv_time_range_label_main);
+        btnLoadPoolsMain = findViewById(R.id.btn_load_pools_main);
+        btnSavePoolsMain = findViewById(R.id.btn_save_pools_main);
+        btnRemoveCategoryMain = findViewById(R.id.btn_remove_category_main);
+        btnAddPoolMain = findViewById(R.id.btn_add_pool_main);
         btnStartStop.setOnClickListener(v -> onStartStopClicked());
         btnReset.setOnClickListener(v -> onResetClicked());
         btnEnd.setOnClickListener(v -> onEndClicked());
         btnLoadEntries.setOnClickListener(v -> loadEntriesFileLauncher.launch(new String[]{"text/plain"}));
         btnSaveEntries.setOnClickListener(v -> saveEntriesFileLauncher.launch("MetaDataProjectTime.txt"));
-        btnLoadPools.setOnClickListener(v -> loadPoolsFileLauncher.launch(new String[]{"text/plain"}));
-        btnSavePools.setOnClickListener(v -> savePoolsFileLauncher.launch("MetaDataDailyTimePools.txt"));
-        btnAddCategory.setOnClickListener(v -> showAddCategoryDialog());
-        btnRemoveCategory.setOnClickListener(v -> showRemoveCategoryDialog());
-
-        // Setup radio group listener
-        radioGroupSections.setOnCheckedChangeListener((group, checkedId) -> {
-            cardControlPanel.setVisibility(checkedId == R.id.radio_control ? View.VISIBLE : View.GONE);
-            cardEntries.setVisibility(checkedId == R.id.radio_entries ? View.VISIBLE : View.GONE);
-            cardPools.setVisibility(checkedId == R.id.radio_pools ? View.VISIBLE : View.GONE);
-        });
+        chartManager = new TimeOverviewChartManager(chartMain, timeEntryRepository, btnTimePrevMain, btnTimeNextMain, tvTimeRangeLabelMain);
+        poolsManager = new CategoryPoolsManager(this, rvPoolsMain, dailyTimePoolRepository, timeEntryRepository);
+        btnTimeRangeWeekMain.setOnClickListener(v -> setTimeRangeMode(TimeOverviewChartManager.TimeRangeMode.WEEK));
+        btnTimeRangeMonthMain.setOnClickListener(v -> setTimeRangeMode(TimeOverviewChartManager.TimeRangeMode.MONTH));
+        btnTimeRangeYearMain.setOnClickListener(v -> setTimeRangeMode(TimeOverviewChartManager.TimeRangeMode.YEAR));
+        btnTimeRangeFullMain.setOnClickListener(v -> setTimeRangeMode(TimeOverviewChartManager.TimeRangeMode.FULL));
+        btnTimePrevMain.setOnClickListener(v -> chartManager.navigateTimePrevious());
+        btnTimeNextMain.setOnClickListener(v -> chartManager.navigateTimeNext());
+        btnLoadPoolsMain.setOnClickListener(v -> loadPoolsFileLauncher.launch(new String[]{"text/plain"}));
+        btnSavePoolsMain.setOnClickListener(v -> savePoolsFileLauncher.launch("MetaDataDailyTimePools.txt"));
+        btnRemoveCategoryMain.setOnClickListener(v -> poolsManager.showRemoveCategoryDialog());
+        btnAddPoolMain.setOnClickListener(v -> poolsManager.showAddCategoryDialog());
+        setupSectionSelector();
+        chartManager.setupChart();
+        poolsManager.setupRecyclerView();
+        initializePoolsFilePickers();
     }
 
     private void setupSpinners() {
-        // Reminder interval spinner
+        // Reminder interval spinner:
         String[] reminderChoices = new String[REMINDER_INTERVAL_CHOICES.length];
         for (int i = 0; i < REMINDER_INTERVAL_CHOICES.length; i++) {
             reminderChoices[i] = String.valueOf(REMINDER_INTERVAL_CHOICES[i]);
@@ -262,31 +259,27 @@ public class MainActivity extends AppCompatActivity {
         spinnerReminder.setOnItemClickListener((parent, view, position, id) -> {
             updateReminderInterval();
         });
-
-        // Handle custom input when focus is lost
+        // Handle custom input when focus is lost:
         spinnerReminder.setOnFocusChangeListener((v, hasFocus) -> {
             if (!hasFocus) {
                 updateReminderInterval();
             }
         });
-
-        // Project and category spinners
+        // Project and category spinners:
         updateSpinnerData();
-
-        // Listen for changes
+        // Listen for changes:
         spinnerProject.setOnItemClickListener((parent, view, position, id) -> {
             String selectedProject = spinnerProject.getText().toString();
-            // Save the selected project
+            // Save the selected project:
             if (!isInitialSetup) {
                 preferencesManager.setLastProject(selectedProject);
             }
             updateTotalDurations();
             updatePoolTime();
         });
-
         spinnerCategory.setOnItemClickListener((parent, view, position, id) -> {
             String selectedCategory = spinnerCategory.getText().toString();
-            // Save the selected category
+            // Save the selected category:
             if (!isInitialSetup) {
                 preferencesManager.setLastCategory(selectedCategory);
             }
@@ -302,12 +295,12 @@ public class MainActivity extends AppCompatActivity {
             if (!text.isEmpty()) {
                 int minutes = Integer.parseInt(text);
                 reminderIntervalSeconds = minutes * 60;
-                // Save the reminder interval
+                // Save the reminder interval:
                 preferencesManager.setLastReminder(minutes);
                 updateNextReminder();
             }
         } catch (NumberFormatException e) {
-            // Invalid input, keep current value
+            // Invalid input, keep current value:
             Toast.makeText(this, "Invalid reminder interval", Toast.LENGTH_SHORT).show();
         }
     }
@@ -322,9 +315,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateSpinnerData() {
-        // Categories (set up first)
+        // Categories (set up first):
         List<String> categories = new ArrayList<>(timeEntryRepository.getAllCategories());
-        // Add categories from pools
+        // Add categories from pools:
         categories.addAll(dailyTimePoolRepository.getCategories());
         List<String> uniqueCategories = new ArrayList<>(new java.util.HashSet<>(categories));
         Collections.sort(uniqueCategories);
@@ -332,17 +325,16 @@ public class MainActivity extends AppCompatActivity {
                 android.R.layout.simple_dropdown_item_1line, uniqueCategories);
         spinnerCategory.setAdapter(categoryAdapter);
         if (spinnerCategory.getText().toString().isEmpty() && !uniqueCategories.isEmpty()) {
-            // Try to restore last selected category
+            // Try to restore last selected category:
             String lastCategory = preferencesManager.getLastCategory();
             if (!lastCategory.isEmpty() && uniqueCategories.contains(lastCategory)) {
                 spinnerCategory.setText(lastCategory, false);
             } else {
-                // Fall back to first category if no saved category or it doesn't exist
+                // Fall back to first category if no saved category or it doesn't exist:
                 spinnerCategory.setText(uniqueCategories.get(0), false);
             }
         }
-
-        // Projects (filter by selected category)
+        // Projects (filter by selected category):
         updateProjectsForCategory();
     }
 
@@ -352,16 +344,13 @@ public class MainActivity extends AppCompatActivity {
         Collections.sort(projects);
         ArrayAdapter<String> projectAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_dropdown_item_1line, projects);
-
-        // Save current project selection before updating adapter
+        // Save current project selection before updating adapter:
         String currentProject = spinnerProject.getText().toString();
-
         spinnerProject.setAdapter(projectAdapter);
-
-        // Set project selection based on context
+        // Set project selection based on context:
         if (!projects.isEmpty()) {
             if (currentProject.isEmpty() || !projects.contains(currentProject)) {
-                // During initial setup, try to restore last selected project
+                // During initial setup, try to restore last selected project:
                 if (isInitialSetup) {
                     String lastProject = preferencesManager.getLastProject();
                     if (!lastProject.isEmpty() && projects.contains(lastProject)) {
@@ -369,8 +358,7 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
                 }
-
-                // During runtime category change, select project with most time
+                // During runtime category change, select project with most time:
                 String projectWithMostTime = projects.get(0);
                 long maxDuration = 0;
                 for (String project : projects) {
@@ -382,7 +370,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 spinnerProject.setText(projectWithMostTime, false);
             } else {
-                // Restore the current project selection if it's still valid
+                // Restore the current project selection if it's still valid:
                 spinnerProject.setText(currentProject, false);
             }
         }
@@ -394,55 +382,27 @@ public class MainActivity extends AppCompatActivity {
         rvEntries.setAdapter(adapter);
     }
 
-    private void setupPoolsRecyclerView() {
-        poolAdapter = new PoolAdapter(getPoolData());
-        rvPools.setLayoutManager(new LinearLayoutManager(this));
-        rvPools.setAdapter(poolAdapter);
-    }
-
-    private List<CategoryPoolData> getPoolData() {
-        // Combine categories from pools and entries
-        java.util.Set<String> allCategories = new java.util.HashSet<>();
-        allCategories.addAll(dailyTimePoolRepository.getCategories());
-        allCategories.addAll(timeEntryRepository.getAllCategories());
-
-        List<CategoryPoolData> data = new ArrayList<>();
-        for (String category : allCategories) {
-            int dailyMinutes = dailyTimePoolRepository.getDailyMinutes(category);
-            long totalSeconds = timeEntryRepository.getTotalDurationForCategory(category);
-            long poolSeconds = calculatePoolTime(category, dailyMinutes);
-            data.add(new CategoryPoolData(category, dailyMinutes, poolSeconds, totalSeconds));
-        }
-
-        Collections.sort(data, (a, b) -> a.category.compareToIgnoreCase(b.category));
-        return data;
-    }
-
     private long calculatePoolTime(String category, int dailyMinutes) {
         if (dailyMinutes <= 0) {
             return 0;
         }
-
         Date earliestDate = timeEntryRepository.getEarliestStartDateForCategory(category);
         if (firstStartDatetime != null && firstStartDatetime.before(earliestDate)) {
             earliestDate = firstStartDatetime;
         }
-
         int days = TimeUtils.daysBetween(earliestDate, new Date());
-        long poolSeconds = (long) dailyMinutes * 60 * days;
+        long poolSeconds = (long)dailyMinutes * 60 * days;
         long usedSeconds = timeEntryRepository.getTotalDurationForCategory(category);
-
-        // Add current session if running and same category
+        // Add current session if running and same category:
         if (isRunning && category.equals(spinnerCategory.getText().toString())) {
             usedSeconds += getTotalCurrentDurationSeconds();
         }
-
         return poolSeconds - usedSeconds;
     }
 
     private void onStartStopClicked() {
         if (!isRunning) {
-            // Start
+            // Start:
             isRunning = true;
             isPaused = false;
             currentStartDatetime = new Date();
@@ -453,14 +413,14 @@ public class MainActivity extends AppCompatActivity {
             btnStartStop.setText(R.string.pause);
             updateNextReminder();
         } else if (!isPaused) {
-            // Pause
+            // Pause:
             isPaused = true;
             accumulatedDurationSeconds += getCurrentSessionSeconds();
             currentStartDatetime = null;
             cancelReminderAlarm();
             btnStartStop.setText(R.string.resume);
         } else {
-            // Resume
+            // Resume:
             isPaused = false;
             currentStartDatetime = new Date();
             btnStartStop.setText(R.string.pause);
@@ -473,11 +433,9 @@ public class MainActivity extends AppCompatActivity {
         if (firstStartDatetime == null) {
             return;
         }
-
-        // Reset state without saving
+        // Reset state without saving:
         resetState();
-
-        // Update UI
+        // Update UI:
         updateTotalDurations();
         updatePoolTime();
     }
@@ -486,13 +444,11 @@ public class MainActivity extends AppCompatActivity {
         if (firstStartDatetime == null) {
             return;
         }
-
-        // Calculate final duration
+        // Calculate final duration:
         if (currentStartDatetime != null) {
             accumulatedDurationSeconds += getCurrentSessionSeconds();
         }
-
-        // Save entry
+        // Save entry:
         TimeEntry entry = new TimeEntry(
                 spinnerProject.getText().toString(),
                 spinnerCategory.getText().toString(),
@@ -500,11 +456,9 @@ public class MainActivity extends AppCompatActivity {
                 firstStartDatetime
         );
         timeEntryRepository.addEntry(entry);
-
-        // Reset state
+        // Reset state:
         resetState();
-
-        // Update UI
+        // Update UI:
         updateSpinnerData();
         updateTotalDurations();
         updatePoolTime();
@@ -547,11 +501,10 @@ public class MainActivity extends AppCompatActivity {
         tvCurrentDuration.setText(TimeUtils.formatDuration(totalSeconds));
         updateTotalDurations();
         updatePoolTime();
-
-        // Check for reminder - AlarmManager handles the actual triggering
-        // This is just a fallback check in case we missed a scheduled alarm
+        // Check for reminder - AlarmManager handles the actual triggering:
+        // This is just a fallback check in case we missed a scheduled alarm:
         if (nextReminderSeconds > 0 && reminderIntervalSeconds > 0 && totalSeconds >= nextReminderSeconds) {
-            // Time has passed the reminder point, reschedule for next interval
+            // Time has passed the reminder point, reschedule for next interval:
             nextReminderSeconds += reminderIntervalSeconds;
             long delayMillis = (nextReminderSeconds - totalSeconds) * 1000;
             if (delayMillis > 0) {
@@ -563,26 +516,19 @@ public class MainActivity extends AppCompatActivity {
     private void updateTotalDurations() {
         String project = spinnerProject.getText().toString();
         String category = spinnerCategory.getText().toString();
-
         long totalProject = timeEntryRepository.getTotalDurationForProject(project) +
                 (project.equals(spinnerProject.getText().toString()) ? getTotalCurrentDurationSeconds() : 0);
         long totalCategory = timeEntryRepository.getTotalDurationForCategory(category) +
                 (category.equals(spinnerCategory.getText().toString()) ? getTotalCurrentDurationSeconds() : 0);
-
-        // Only add current session if it matches the selected project/category
+        // Only add current session if it matches the selected project/category:
         if (isRunning) {
             totalProject = timeEntryRepository.getTotalDurationForProject(project) + getTotalCurrentDurationSeconds();
             totalCategory = timeEntryRepository.getTotalDurationForCategory(category) + getTotalCurrentDurationSeconds();
         }
-
         tvTotalProjectDuration.setText(TimeUtils.formatDuration(totalProject));
         tvTotalCategoryDuration.setText(TimeUtils.formatDuration(totalCategory));
     }
 
-    /**
-     * Formats pool time for display. Shows "-" if pool time is 0 (no daily minutes set),
-     * otherwise shows the formatted duration with "-" prefix for negative values.
-     */
     private String formatPoolTimeDisplay(long poolSeconds) {
         if (poolSeconds == 0) {
             return "-";
@@ -591,14 +537,10 @@ public class MainActivity extends AppCompatActivity {
         return poolSeconds < 0 ? "-" + timeStr : timeStr;
     }
 
-    /**
-     * Sets the pool time text and color based on the pool seconds value.
-     */
     private void setPoolTimeDisplay(TextView textView, long poolSeconds) {
         textView.setText(formatPoolTimeDisplay(poolSeconds));
-
         if (poolSeconds == 0) {
-            // Use default text color for "-"
+            // Use default text color for "-":
             textView.setTextColor(tvStartDate.getCurrentTextColor());
         } else if (poolSeconds >= 0) {
             textView.setTextColor(getResources().getColor(R.color.pool_positive, null));
@@ -610,40 +552,33 @@ public class MainActivity extends AppCompatActivity {
     private void updatePoolTime() {
         String category = spinnerCategory.getText().toString();
         int dailyMinutes = dailyTimePoolRepository.getDailyMinutes(category);
-
         if (dailyMinutes <= 0) {
             setPoolTimeDisplay(tvPoolTime, 0);
             return;
         }
-
-        // Calculate remaining pool time
+        // Calculate remaining pool time:
         Date earliestDate = timeEntryRepository.getEarliestStartDateForCategory(category);
         if (firstStartDatetime != null && firstStartDatetime.before(earliestDate)) {
             earliestDate = firstStartDatetime;
         }
-
         int days = TimeUtils.daysBetween(earliestDate, new Date());
-        long poolSeconds = (long) dailyMinutes * 60 * days;
+        long poolSeconds = (long)dailyMinutes * 60 * days;
         long usedSeconds = timeEntryRepository.getTotalDurationForCategory(category);
-
-        // Add current session if running and same category
+        // Add current session if running and same category:
         if (isRunning && category.equals(spinnerCategory.getText().toString())) {
             usedSeconds += getTotalCurrentDurationSeconds();
         }
-
         long remainingSeconds = poolSeconds - usedSeconds;
         setPoolTimeDisplay(tvPoolTime, remainingSeconds);
     }
 
     private void updateNextReminder() {
-        // Cancel any existing alarms
+        // Cancel any existing alarms:
         cancelReminderAlarm();
-
         if (reminderIntervalSeconds > 0 && isRunning && !isPaused) {
             long currentSeconds = getTotalCurrentDurationSeconds();
-            nextReminderSeconds = (int) ((currentSeconds / reminderIntervalSeconds) + 1) * reminderIntervalSeconds;
-
-            // Schedule next alarm
+            nextReminderSeconds = (int)((currentSeconds / reminderIntervalSeconds) + 1) * reminderIntervalSeconds;
+            // Schedule next alarm:
             long delayMillis = (nextReminderSeconds - currentSeconds) * 1000;
             if (delayMillis > 0) {
                 scheduleReminderAlarm(delayMillis);
@@ -657,15 +592,13 @@ public class MainActivity extends AppCompatActivity {
         if (alarmManager == null || reminderIntervalSeconds <= 0) {
             return;
         }
-
-        // Check if we have permission to schedule exact alarms (Android 12+)
+        // Check if we have permission to schedule exact alarms (Android 12+):
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (!alarmManager.canScheduleExactAlarms()) {
                 Toast.makeText(this, "Exact alarm permission needed for reminders", Toast.LENGTH_LONG).show();
                 return;
             }
         }
-
         Intent intent = new Intent(this, ReminderReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
             this,
@@ -673,10 +606,8 @@ public class MainActivity extends AppCompatActivity {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
-
         long triggerTime = System.currentTimeMillis() + delayMillis;
-
-        // Use setExactAndAllowWhileIdle for precise timing even in Doze mode
+        // Use setExactAndAllowWhileIdle for precise timing even in Doze mode:
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
             triggerTime,
@@ -688,7 +619,6 @@ public class MainActivity extends AppCompatActivity {
         if (alarmManager == null) {
             return;
         }
-
         Intent intent = new Intent(this, ReminderReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
             this,
@@ -696,7 +626,6 @@ public class MainActivity extends AppCompatActivity {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
-
         alarmManager.cancel(pendingIntent);
     }
 
@@ -723,115 +652,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void refreshEntryList() {
         adapter.updateEntries(timeEntryRepository.getAllEntries());
-        poolAdapter.updateData(getPoolData());
     }
 
-    // Data class for Category Pool
-    private static class CategoryPoolData {
-        String category;
-        int dailyMinutes;
-        long poolSeconds;
-        long totalSeconds;
-
-        CategoryPoolData(String category, int dailyMinutes, long poolSeconds, long totalSeconds) {
-            this.category = category;
-            this.dailyMinutes = dailyMinutes;
-            this.poolSeconds = poolSeconds;
-            this.totalSeconds = totalSeconds;
-        }
-    }
-
-    // RecyclerView Adapter for Pools
-    private class PoolAdapter extends RecyclerView.Adapter<PoolAdapter.ViewHolder> {
-        private List<CategoryPoolData> data;
-
-        PoolAdapter(List<CategoryPoolData> data) {
-            this.data = new ArrayList<>(data);
-        }
-
-        void updateData(List<CategoryPoolData> newData) {
-            this.data = new ArrayList<>(newData);
-            notifyDataSetChanged();
-        }
-
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.item_category_pool, parent, false);
-            return new ViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            CategoryPoolData item = data.get(position);
-
-            holder.tvCategory.setText(item.category);
-            holder.etDailyMinutes.removeTextChangedListener(holder.textWatcher);
-            holder.etDailyMinutes.setText(String.valueOf(item.dailyMinutes));
-
-            setPoolTimeDisplay(holder.tvPoolTime, item.poolSeconds);
-
-            holder.tvTotalTime.setText(TimeUtils.formatDuration(item.totalSeconds));
-
-            // Set up text watcher for daily minutes
-            holder.textWatcher = new android.text.TextWatcher() {
-                @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-                @Override
-                public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
-                @Override
-                public void afterTextChanged(android.text.Editable s) {
-                    int minutes = 0;
-                    try {
-                        minutes = Integer.parseInt(s.toString());
-                    } catch (NumberFormatException e) {
-                        // Keep default 0
-                    }
-                    dailyTimePoolRepository.setDailyMinutes(item.category, minutes);
-
-                    // Update pool time display
-                    long newPoolSeconds = calculatePoolTime(item.category, minutes);
-                    setPoolTimeDisplay(holder.tvPoolTime, newPoolSeconds);
-
-                    // Update main pool time if this is the selected category
-                    if (item.category.equals(spinnerCategory.getText().toString())) {
-                        updatePoolTime();
-                    }
-                }
-            };
-            holder.etDailyMinutes.addTextChangedListener(holder.textWatcher);
-        }
-
-        @Override
-        public int getItemCount() {
-            return data.size();
-        }
-
-        class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvCategory, tvPoolTime, tvTotalTime;
-            android.widget.EditText etDailyMinutes;
-            android.text.TextWatcher textWatcher;
-
-            ViewHolder(View itemView) {
-                super(itemView);
-                tvCategory = itemView.findViewById(R.id.tv_pool_category);
-                etDailyMinutes = itemView.findViewById(R.id.et_pool_daily_minutes);
-                tvPoolTime = itemView.findViewById(R.id.tv_pool_remaining);
-                tvTotalTime = itemView.findViewById(R.id.tv_pool_total);
-            }
-        }
-    }
-
-    // RecyclerView Adapter for Time Entries
+    // RecyclerView Adapter for Time Entries:
     private class TimeEntryAdapter extends RecyclerView.Adapter<TimeEntryAdapter.ViewHolder> {
         private List<TimeEntry> entries;
 
         TimeEntryAdapter(List<TimeEntry> entries) {
             this.entries = new ArrayList<>(entries);
-            // Reverse to show newest first
+            // Reverse to show newest first:
             Collections.reverse(this.entries);
         }
 
@@ -856,13 +685,12 @@ public class MainActivity extends AppCompatActivity {
             holder.tvCategory.setText(entry.getCategory());
             holder.tvDuration.setText(TimeUtils.formatDuration(entry.getDurationSeconds()));
             holder.tvStartTime.setText(TimeUtils.formatDateTimeForDisplay(entry.getStartTime()));
-
             holder.btnRemove.setOnClickListener(v -> {
                 new AlertDialog.Builder(MainActivity.this)
                         .setTitle(R.string.confirm_delete)
                         .setMessage(R.string.confirm_delete_message)
                         .setPositiveButton(R.string.delete, (dialog, which) -> {
-                            // Find actual index in repository (entries are reversed)
+                            // Find actual index in repository (entries are reversed):
                             int actualIndex = timeEntryRepository.getEntryCount() - 1 - position;
                             timeEntryRepository.removeEntry(actualIndex);
                             updateSpinnerData();
@@ -895,9 +723,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Initialize file picker launchers for Load/Save functionality.
-     */
     private void initializeFilePickers() {
         // Load entries file picker
         loadEntriesFileLauncher = registerForActivityResult(
@@ -918,44 +743,19 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
         );
-
-        // Load pools file picker
-        loadPoolsFileLauncher = registerForActivityResult(
-                new ActivityResultContracts.OpenDocument(),
-                uri -> {
-                    if (uri != null) {
-                        loadPoolsFromFile(uri);
-                    }
-                }
-        );
-
-        // Save pools file picker
-        savePoolsFileLauncher = registerForActivityResult(
-                new ActivityResultContracts.CreateDocument("text/plain"),
-                uri -> {
-                    if (uri != null) {
-                        savePoolsToFile(uri);
-                    }
-                }
-        );
     }
 
-    /**
-     * Load time entries from a text file in Python format.
-     */
     private void loadEntriesFromFile(Uri uri) {
         try {
             InputStream inputStream = getContentResolver().openInputStream(uri);
             if (inputStream != null) {
                 timeEntryRepository.importFromTextFile(inputStream);
                 inputStream.close();
-
-                // Refresh UI
+                // Refresh UI:
                 updateSpinnerData();
                 updateTotalDurations();
                 updatePoolTime();
                 refreshEntryList();
-
                 Toast.makeText(this, "Entries loaded successfully", Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
@@ -964,16 +764,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Save time entries to a text file in Python format.
-     */
     private void saveEntriesToFile(Uri uri) {
         try {
             OutputStream outputStream = getContentResolver().openOutputStream(uri);
             if (outputStream != null) {
                 timeEntryRepository.exportToTextFile(outputStream);
                 outputStream.close();
-
                 Toast.makeText(this, "Entries saved successfully", Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
@@ -982,136 +778,123 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Load pools from a text file in Python format.
-     */
-    private void loadPoolsFromFile(Uri uri) {
-        try {
-            InputStream inputStream = getContentResolver().openInputStream(uri);
-            if (inputStream != null) {
-                dailyTimePoolRepository.importFromTextFile(inputStream);
-                inputStream.close();
+    private void setupSectionSelector() {
+        String[] sections = {
+            getString(R.string.control_header),
+            getString(R.string.entries_header),
+            getString(R.string.pools_header),
+            getString(R.string.overview_header)
+        };
+        // Calculate item width to show 3 items at a time:
+        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        int screenWidth = displayMetrics.widthPixels;
+        int paddingPx = (int)(24 * displayMetrics.density);
+        int marginPerItemPx = (int)(8 * displayMetrics.density);
+        int availableWidth = screenWidth - paddingPx;
+        int itemWidth = (availableWidth - (marginPerItemPx * 3)) / 3;
+        sectionSelectorAdapter = new SectionSelectorAdapter(sections, itemWidth);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
+        rvSectionSelector.setLayoutManager(layoutManager);
+        rvSectionSelector.setAdapter(sectionSelectorAdapter);
+    }
 
-                // Refresh UI
-                updatePoolTime();
-                poolAdapter.updateData(getPoolData());
+    private void showSection(int index) {
+        selectedSectionIndex = index;
+        sectionSelectorAdapter.notifyDataSetChanged();
+        cardControlPanel.setVisibility(index == 0 ? View.VISIBLE : View.GONE);
+        cardEntries.setVisibility(index == 1 ? View.VISIBLE : View.GONE);
+        cardPools.setVisibility(index == 2 ? View.VISIBLE : View.GONE);
+        cardOverview.setVisibility(index == 3 ? View.VISIBLE : View.GONE);
+        if (index == 2) {
+            poolsManager.refreshPoolsData();
+        }
+        if (index == 3) {
+            chartManager.loadChartData(true); // Auto-navigate to nearest data on first load
+            updateTimeRangeButtonStates();
+        }
+    }
 
-                Toast.makeText(this, "Pools loaded successfully", Toast.LENGTH_SHORT).show();
+    private class SectionSelectorAdapter extends RecyclerView.Adapter<SectionSelectorAdapter.ViewHolder> {
+        private final String[] sections;
+        private final int itemWidth;
+
+        SectionSelectorAdapter(String[] sections, int itemWidth) {
+            this.sections = sections;
+            this.itemWidth = itemWidth;
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_section_selector, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            String section = sections[position];
+            holder.textView.setText(section);
+            // Set width to show 3 items at a time:
+            ViewGroup.LayoutParams layoutParams = holder.itemView.getLayoutParams();
+            layoutParams.width = itemWidth;
+            holder.itemView.setLayoutParams(layoutParams);
+            // Update appearance based on selection:
+            boolean isSelected = position == selectedSectionIndex;
+            int backgroundColor = isSelected ?
+                getResources().getColor(R.color.section_selected, null) :
+                getResources().getColor(R.color.section_unselected, null);
+            holder.card.setCardBackgroundColor(backgroundColor);
+            holder.itemView.setOnClickListener(v -> showSection(position));
+        }
+
+        @Override
+        public int getItemCount() {
+            return sections.length;
+        }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            MaterialCardView card;
+            TextView textView;
+
+            ViewHolder(View itemView) {
+                super(itemView);
+                card = itemView.findViewById(R.id.section_card);
+                textView = itemView.findViewById(R.id.section_text);
             }
-        } catch (Exception e) {
-            Toast.makeText(this, "Error loading file: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            e.printStackTrace();
         }
     }
 
-    /**
-     * Save pools to a text file in Python format.
-     */
-    private void savePoolsToFile(Uri uri) {
-        try {
-            OutputStream outputStream = getContentResolver().openOutputStream(uri);
-            if (outputStream != null) {
-                dailyTimePoolRepository.exportToTextFile(outputStream);
-                outputStream.close();
-
-                Toast.makeText(this, "Pools saved successfully", Toast.LENGTH_SHORT).show();
-            }
-        } catch (Exception e) {
-            Toast.makeText(this, "Error saving file: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            e.printStackTrace();
-        }
+    private void setTimeRangeMode(TimeOverviewChartManager.TimeRangeMode mode) {
+        chartManager.setTimeRangeMode(mode);
+        updateTimeRangeButtonStates();
     }
 
-    /**
-     * Show dialog to add a new category.
-     */
-    private void showAddCategoryDialog() {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_category, null);
-        com.google.android.material.textfield.TextInputEditText etCategoryName =
-                dialogView.findViewById(R.id.et_category_name);
-        com.google.android.material.textfield.TextInputEditText etDailyMinutes =
-                dialogView.findViewById(R.id.et_daily_minutes);
-
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.add_category)
-                .setView(dialogView)
-                .setPositiveButton(R.string.add, (dialog, which) -> {
-                    String categoryName = etCategoryName.getText().toString().trim();
-                    String dailyMinutesStr = etDailyMinutes.getText().toString().trim();
-
-                    if (categoryName.isEmpty()) {
-                        Toast.makeText(this, "Category name cannot be empty", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    // Check if category already exists
-                    if (dailyTimePoolRepository.getAllCategories().contains(categoryName)) {
-                        Toast.makeText(this, "Category already exists", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    int dailyMinutes = 0;
-                    if (!dailyMinutesStr.isEmpty()) {
-                        try {
-                            dailyMinutes = Integer.parseInt(dailyMinutesStr);
-                        } catch (NumberFormatException e) {
-                            Toast.makeText(this, "Invalid daily minutes", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                    }
-
-                    dailyTimePoolRepository.setDailyMinutes(categoryName, dailyMinutes);
-                    poolAdapter.updateData(getPoolData());
-                    updateSpinnerData();
-                    updatePoolTime();
-                    Toast.makeText(this, "Category added", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+    private void updateTimeRangeButtonStates() {
+        int selectedColor = getResources().getColor(R.color.section_selected, null);
+        int unselectedColor = getResources().getColor(R.color.section_unselected, null);
+        btnTimeRangeWeekMain.setBackgroundColor(chartManager.getTimeRangeMode() == TimeOverviewChartManager.TimeRangeMode.WEEK ? selectedColor : unselectedColor);
+        btnTimeRangeMonthMain.setBackgroundColor(chartManager.getTimeRangeMode() == TimeOverviewChartManager.TimeRangeMode.MONTH ? selectedColor : unselectedColor);
+        btnTimeRangeYearMain.setBackgroundColor(chartManager.getTimeRangeMode() == TimeOverviewChartManager.TimeRangeMode.YEAR ? selectedColor : unselectedColor);
+        btnTimeRangeFullMain.setBackgroundColor(chartManager.getTimeRangeMode() == TimeOverviewChartManager.TimeRangeMode.FULL ? selectedColor : unselectedColor);
     }
 
-    /**
-     * Show dialog to remove a category.
-     */
-    private void showRemoveCategoryDialog() {
-        List<String> categories = dailyTimePoolRepository.getAllCategories();
-        if (categories.isEmpty()) {
-            Toast.makeText(this, "No categories to remove", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        String[] categoryArray = categories.toArray(new String[0]);
-
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.remove_category)
-                .setItems(categoryArray, (dialog, which) -> {
-                    String categoryToRemove = categoryArray[which];
-                    new AlertDialog.Builder(this)
-                            .setTitle(R.string.confirm_delete)
-                            .setMessage("Remove category \"" + categoryToRemove + "\"?")
-                            .setPositiveButton(R.string.delete, (d, w) -> {
-                                // Remove all entries with this category
-                                timeEntryRepository.removeEntriesByCategory(categoryToRemove);
-
-                                // Remove the category from pools
-                                dailyTimePoolRepository.removeCategory(categoryToRemove);
-
-                                // Reset category selection if it was the removed one
-                                if (categoryToRemove.equals(spinnerCategory.getText().toString())) {
-                                    spinnerCategory.setText("", false);
-                                }
-
-                                // Update UI
-                                poolAdapter.updateData(getPoolData());
-                                refreshEntryList();
-                                updateSpinnerData();
-                                updatePoolTime();
-                                Toast.makeText(this, "Category and its entries removed", Toast.LENGTH_SHORT).show();
-                            })
-                            .setNegativeButton(R.string.cancel, null)
-                            .show();
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+    private void initializePoolsFilePickers() {
+        loadPoolsFileLauncher = registerForActivityResult(
+                new ActivityResultContracts.OpenDocument(),
+                uri -> {
+                    if (uri != null) {
+                        poolsManager.loadPoolsFromFile(uri);
+                    }
+                }
+        );
+        savePoolsFileLauncher = registerForActivityResult(
+                new ActivityResultContracts.CreateDocument("text/plain"),
+                uri -> {
+                    if (uri != null) {
+                        poolsManager.savePoolsToFile(uri);
+                    }
+                }
+        );
     }
 }

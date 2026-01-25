@@ -26,11 +26,11 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * Repository for managing time entry data persistence.
+ * Repository for time entry data persistence.
  */
 public class TimeEntryRepository {
     private static final String FIELD_SEPARATOR = " --- ";
-    // Python format: %Y-%m-%d %H:%M:%S.%f
+    // Python format: %Y-%m-%d %H:%M:%S.%f:
     private static final String PYTHON_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
 
     private final PreferencesManager preferencesManager;
@@ -103,7 +103,7 @@ public class TimeEntryRepository {
      */
     public Set<String> getAllProjects() {
         Set<String> projects = new HashSet<>();
-        projects.add("ProjectTimeTracker"); // Default project
+        projects.add("ProjectTimeTracker"); // Default project:
         for (TimeEntry entry : entries) {
             if (entry.getProject() != null && !entry.getProject().isEmpty()) {
                 projects.add(entry.getProject());
@@ -117,7 +117,7 @@ public class TimeEntryRepository {
      */
     public Set<String> getAllCategories() {
         Set<String> categories = new HashSet<>();
-        categories.add("Programming"); // Default category
+        categories.add("Programming"); // Default category:
         for (TimeEntry entry : entries) {
             if (entry.getCategory() != null && !entry.getCategory().isEmpty()) {
                 categories.add(entry.getCategory());
@@ -136,7 +136,7 @@ public class TimeEntryRepository {
                 projects.add(entry.getProject());
             }
         }
-        // Only add default if no projects found for this category
+        // Only add default if no projects found for this category:
         if (projects.isEmpty()) {
             projects.add("ProjectTimeTracker");
         }
@@ -192,7 +192,6 @@ public class TimeEntryRepository {
     public void exportToTextFile(OutputStream outputStream) throws IOException {
         SimpleDateFormat dateFormat = new SimpleDateFormat(PYTHON_DATE_FORMAT, Locale.US);
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream));
-
         try {
             for (TimeEntry entry : entries) {
                 String line = entry.getProject() + FIELD_SEPARATOR +
@@ -216,7 +215,6 @@ public class TimeEntryRepository {
         SimpleDateFormat dateFormat = new SimpleDateFormat(PYTHON_DATE_FORMAT, Locale.US);
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
         List<TimeEntry> importedEntries = new ArrayList<>();
-
         try {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -224,16 +222,14 @@ public class TimeEntryRepository {
                 if (line.isEmpty()) {
                     continue;
                 }
-
                 String[] parts = line.split(FIELD_SEPARATOR);
                 if (parts.length >= 4) {
                     String project = parts[0].trim();
                     String category = parts[1].trim();
-                    // Parse as double first to handle decimal seconds, then convert to long
+                    // Parse as double first to handle decimal seconds, then convert to long:
                     double durationDouble = Double.parseDouble(parts[2].trim());
-                    long duration = (long) durationDouble;
+                    long duration = (long)durationDouble;
                     Date startTime = dateFormat.parse(parts[3].trim());
-
                     TimeEntry entry = new TimeEntry(project, category, duration, startTime);
                     importedEntries.add(entry);
                 }
@@ -241,8 +237,7 @@ public class TimeEntryRepository {
         } finally {
             reader.close();
         }
-
-        // Replace current entries with imported ones
+        // Replace current entries with imported ones:
         entries.clear();
         entries.addAll(importedEntries);
         saveEntries();

@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Repository for managing daily time pool data persistence.
+ * Repository for daily time pool data persistence.
  */
 public class DailyTimePoolRepository {
     private static final String FIELD_SEPARATOR = " --- ";
@@ -116,7 +116,6 @@ public class DailyTimePoolRepository {
     public void importFromTextFile(InputStream inputStream) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
         Map<String, Integer> importedPools = new HashMap<>();
-
         try {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -124,7 +123,6 @@ public class DailyTimePoolRepository {
                 if (line.isEmpty()) {
                     continue;
                 }
-
                 String[] parts = line.split(FIELD_SEPARATOR);
                 if (parts.length >= 2) {
                     String category = parts[0].trim();
@@ -135,8 +133,7 @@ public class DailyTimePoolRepository {
         } finally {
             reader.close();
         }
-
-        // Replace current pools with imported ones
+        // Replace current pools with imported ones:
         pools.clear();
         pools.putAll(importedPools);
         savePools();

@@ -26,11 +26,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".CategoryPoolsActivity"
-            android:exported="false"
-            android:parentActivityName=".MainActivity" />
-
         <receiver
             android:name=".ReminderReceiver"
             android:enabled="true"

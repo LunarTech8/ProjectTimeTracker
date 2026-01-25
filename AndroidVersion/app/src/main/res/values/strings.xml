@@ -12,11 +12,20 @@
     <string name="add">Add</string>
     <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>
+    <string name="previous">Previous</string>
+    <string name="next">Next</string>
+
+    <!-- Time Range Buttons -->
+    <string name="time_range_week">Week</string>
+    <string name="time_range_month">Month</string>
+    <string name="time_range_year">Year</string>
+    <string name="time_range_full">Full</string>
 
     <!-- Labels Section Selector -->
     <string name="control_header">Control Panel</string>
     <string name="entries_header">Time Entries</string>
-    <string name="pools_header">Category Time Pools</string>
+    <string name="pools_header">Time Pools</string>
+    <string name="overview_header">Time Overview</string>
 
     <!-- Labels Control Panel -->
     <string name="cp_category">Category</string>
@@ -44,7 +53,4 @@
     <string name="confirm_delete_message">Are you sure you want to delete this entry?</string>
     <string name="add_category">Add Category</string>
     <string name="remove_category">Remove Category</string>
-
-    <!-- Activities -->
-    <string name="category_pools_title">Category Time Pools</string>
 </resources>

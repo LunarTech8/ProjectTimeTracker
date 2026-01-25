@@ -14,30 +14,30 @@ import android.os.Vibrator;
 
 import androidx.core.app.NotificationCompat;
 
+/**
+ * BroadcastReceiver for time tracking reminders.
+ * Provides notifications via beeps, vibration, screen flashing, and system notifications.
+ */
 public class ReminderReceiver extends BroadcastReceiver {
     private static final String CHANNEL_ID = "time_tracker_reminders";
     private static final int NOTIFICATION_ID = 1001;
     private static final int BEEP_COUNT = 12;
-    private static final int BEEP_INTERVAL = 250; // milliseconds
-    private static final int BEEP_DURATION = 200; // milliseconds
+    private static final int BEEP_INTERVAL = 250; // milliseconds:
+    private static final int BEEP_DURATION = 200; // milliseconds:
     private static final int BEEP_VOLUME = 100;
-    private static final int NOTIFICATION_TIMEOUT = 3000; // milliseconds
+    private static final int NOTIFICATION_TIMEOUT = 3000; // milliseconds:
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        // Create notification channel (required for Android O+)
+        // Create notification channel (required for Android O+):
         createNotificationChannel(context);
-
-        // Trigger flashing in MainActivity if app is active
+        // Trigger flashing in MainActivity if app is active:
         MainActivity.triggerFlashIfActive();
-
-        // Play beeps
+        // Play beeps:
         playBeeps(context);
-
-        // Vibrate
+        // Vibrate:
         vibrate(context);
-
-        // Show a subtle notification (optional, for user awareness)
+        // Show a subtle notification (optional, for user awareness):
         showNotification(context);
     }
 
@@ -45,7 +45,6 @@ public class ReminderReceiver extends BroadcastReceiver {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager notificationManager =
                 context.getSystemService(NotificationManager.class);
-
             if (notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
                 NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
@@ -54,7 +53,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                 );
                 channel.setDescription("Reminder alerts for time tracking");
                 channel.enableVibration(true);
-                channel.setSound(null, null); // We'll play our own sound
+                channel.setSound(null, null); // We'll play our own sound:
                 notificationManager.createNotificationChannel(channel);
             }
         }
@@ -67,12 +66,10 @@ public class ReminderReceiver extends BroadcastReceiver {
                     AudioManager.STREAM_ALARM,
                     BEEP_VOLUME
                 );
-
                 for (int i = 0; i < BEEP_COUNT; i++) {
                     toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP, BEEP_DURATION);
                     Thread.sleep(BEEP_INTERVAL);
                 }
-
                 toneGenerator.release();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -88,7 +85,6 @@ public class ReminderReceiver extends BroadcastReceiver {
                 pattern[i * 2] = 0;
                 pattern[i * 2 + 1] = BEEP_DURATION;
             }
-
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1));
             } else {
@@ -100,7 +96,6 @@ public class ReminderReceiver extends BroadcastReceiver {
     private void showNotification(Context context) {
         NotificationManager notificationManager =
             (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle("Time Tracker Reminder")
@@ -108,7 +103,6 @@ public class ReminderReceiver extends BroadcastReceiver {
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
                 .setTimeoutAfter(NOTIFICATION_TIMEOUT);
-
         notificationManager.notify(NOTIFICATION_ID, builder.build());
     }
 }

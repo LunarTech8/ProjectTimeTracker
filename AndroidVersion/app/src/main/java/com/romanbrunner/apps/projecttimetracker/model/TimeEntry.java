@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * Represents a time entry for tracking project time.
+ * Time entry for tracking project time.
  */
 public class TimeEntry implements Serializable {
     private String project;
@@ -25,7 +25,7 @@ public class TimeEntry implements Serializable {
         this.startTime = startTime;
     }
 
-    // Getters and Setters
+    // Getters and Setters:
     public String getId() {
         return id;
     }

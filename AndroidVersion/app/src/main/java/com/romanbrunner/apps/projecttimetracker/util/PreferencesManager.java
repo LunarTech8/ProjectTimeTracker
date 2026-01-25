@@ -4,21 +4,18 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 /**
- * Centralized manager for SharedPreferences access across the application.
- * Provides consistent naming and access patterns for all preference operations.
+ * Manager for SharedPreferences access.
  */
 public class PreferencesManager {
-    // Preference file names
+    // Preference file names:
     private static final String PREFS_APP_STATE = "appStatePrefs";
     private static final String PREFS_TIME_ENTRIES = "timeEntriesPrefs";
     private static final String PREFS_TIME_POOLS = "timePoolsPrefs";
-
-    // App state preference keys
+    // App state preference keys:
     private static final String KEY_LAST_CATEGORY = "lastCategory";
     private static final String KEY_LAST_PROJECT = "lastProject";
     private static final String KEY_LAST_REMINDER = "lastReminder";
-
-    // Repository preference keys
+    // Repository preference keys:
     private static final String KEY_ENTRIES = "timeEntries";
     private static final String KEY_POOLS = "timePools";
 
@@ -32,7 +29,7 @@ public class PreferencesManager {
         timePoolsPrefs = context.getSharedPreferences(PREFS_TIME_POOLS, Context.MODE_PRIVATE);
     }
 
-    // App State Preferences
+    // App State Preferences:
     public String getLastCategory() {
         return appStatePrefs.getString(KEY_LAST_CATEGORY, "");
     }
@@ -57,7 +54,7 @@ public class PreferencesManager {
         appStatePrefs.edit().putInt(KEY_LAST_REMINDER, reminderMinutes).apply();
     }
 
-    // Time Entries Repository Preferences
+    // Time Entries Repository Preferences:
     public SharedPreferences getTimeEntriesPrefs() {
         return timeEntriesPrefs;
     }
@@ -70,7 +67,7 @@ public class PreferencesManager {
         timeEntriesPrefs.edit().putString(KEY_ENTRIES, json).apply();
     }
 
-    // Time Pools Repository Preferences
+    // Time Pools Repository Preferences:
     public SharedPreferences getTimePoolsPrefs() {
         return timePoolsPrefs;
     }
