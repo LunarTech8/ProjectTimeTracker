@@ -54,7 +54,11 @@ AndroidVersion/
 │   │   └── main/
 │   │       ├── java/com/romanbrunner/apps/projecttimetracker/
 │   │       │   ├── MainActivity.java
-│   │       │   ├── CategoryPoolsActivity.java
+│   │       │   ├── ControlPanelManager.java
+│   │       │   ├── TimeEntriesManager.java
+│   │       │   ├── TimePoolsManager.java
+│   │       │   ├── TimeOverviewManager.java
+│   │       │   ├── ReminderReceiver.java
 │   │       │   ├── model/
 │   │       │   │   ├── TimeEntry.java
 │   │       │   │   └── DailyTimePool.java
@@ -68,7 +72,8 @@ AndroidVersion/
 │   │       │   ├── layout/
 │   │       │   │   ├── activity_main.xml
 │   │       │   │   ├── item_time_entry.xml
-│   │       │   │   └── item_category_pool.xml
+│   │       │   │   ├── item_category_pool.xml
+│   │       │   │   └── item_section_selector.xml
 │   │       │   ├── values/
 │   │       │   │   ├── strings.xml
 │   │       │   │   ├── colors.xml
@@ -78,6 +83,7 @@ AndroidVersion/
 │   └── build.gradle
 ├── build.gradle
 ├── settings.gradle
+├── CODING_STYLE.md
 └── gradle.properties
 ```
 
@@ -118,7 +124,8 @@ The app has four main sections accessible via horizontal scrolling selector:
 - Changes save automatically
 
 ### 4. Time Overview
-- **Mode Buttons**: Switch between Week, Month, Year, and Full views
+- **Time Range Dropdown**: Click the time range label to switch between Week, Month, Year, and Full views
+  - Label shows current mode and date range (e.g., "Week: Jan 27 - Feb 02 ▼")
 - **Navigation Arrows**: Move to previous/next period with data
 - **Line Chart**: Multi-category visualization with:
   - Week: Total hours per day (Mon-Sun)
@@ -129,7 +136,18 @@ The app has four main sections accessible via horizontal scrolling selector:
   - Auto-jumps to nearest period with data when opening or switching modes
   - Previous/Next buttons skip empty periods
   - Searches up to 52 periods (weeks/months/years) in each direction
+- **Category Filtering**: Categories with 0 hours in the current time range are hidden from the chart
 - **Legend**: Color-coded categories below chart
+
+## Architecture
+
+The app uses a manager-based architecture to separate concerns:
+
+- **MainActivity**: Handles activity lifecycle, section navigation, and coordinates managers
+- **ControlPanelManager**: Timer control, spinners, reminders, pool time display, and flash animations
+- **TimeEntriesManager**: Entry list RecyclerView, load/save entries, entry deletion
+- **TimePoolsManager**: Pool list RecyclerView, load/save pools, add/remove categories
+- **TimeOverviewManager**: Chart display, time range modes, navigation, and mode popup
 
 ## Building
 

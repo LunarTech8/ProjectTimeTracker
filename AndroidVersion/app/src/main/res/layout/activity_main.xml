@@ -383,78 +383,6 @@
                         android:gravity="center"
                         android:layout_marginBottom="8dp">
 
-                        <Button
-                            android:id="@+id/btn_time_range_week_main"
-                            android:layout_width="0dp"
-                            android:layout_height="40dp"
-                            android:layout_weight="1"
-                            android:text="@string/time_range_week"
-                            android:textSize="10sp"
-                            android:paddingHorizontal="4dp"
-                            android:paddingVertical="4dp"
-                            android:minWidth="0dp"
-                            android:minHeight="0dp"
-                            android:insetTop="0dp"
-                            android:insetBottom="0dp"
-                            style="@style/Widget.Material3.Button" />
-
-                        <Button
-                            android:id="@+id/btn_time_range_month_main"
-                            android:layout_width="0dp"
-                            android:layout_height="40dp"
-                            android:layout_weight="1"
-                            android:layout_marginStart="2dp"
-                            android:text="@string/time_range_month"
-                            android:textSize="10sp"
-                            android:paddingHorizontal="4dp"
-                            android:paddingVertical="4dp"
-                            android:minWidth="0dp"
-                            android:minHeight="0dp"
-                            android:insetTop="0dp"
-                            android:insetBottom="0dp"
-                            style="@style/Widget.Material3.Button" />
-
-                        <Button
-                            android:id="@+id/btn_time_range_year_main"
-                            android:layout_width="0dp"
-                            android:layout_height="40dp"
-                            android:layout_weight="1"
-                            android:layout_marginStart="2dp"
-                            android:text="@string/time_range_year"
-                            android:textSize="10sp"
-                            android:paddingHorizontal="4dp"
-                            android:paddingVertical="4dp"
-                            android:minWidth="0dp"
-                            android:minHeight="0dp"
-                            android:insetTop="0dp"
-                            android:insetBottom="0dp"
-                            style="@style/Widget.Material3.Button" />
-
-                        <Button
-                            android:id="@+id/btn_time_range_full_main"
-                            android:layout_width="0dp"
-                            android:layout_height="40dp"
-                            android:layout_weight="1"
-                            android:layout_marginStart="2dp"
-                            android:text="@string/time_range_full"
-                            android:textSize="10sp"
-                            android:paddingHorizontal="4dp"
-                            android:paddingVertical="4dp"
-                            android:minWidth="0dp"
-                            android:minHeight="0dp"
-                            android:insetTop="0dp"
-                            android:insetBottom="0dp"
-                            style="@style/Widget.Material3.Button" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center"
-                        android:layout_marginBottom="8dp">
-
                         <ImageButton
                             android:id="@+id/btn_time_prev_main"
                             android:layout_width="48dp"
@@ -471,7 +399,11 @@
                             android:text=""
                             android:textSize="14sp"
                             android:textColor="@android:color/white"
-                            android:gravity="center" />
+                            android:gravity="center"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackground"
+                            android:padding="8dp" />
 
                         <ImageButton
                             android:id="@+id/btn_time_next_main"

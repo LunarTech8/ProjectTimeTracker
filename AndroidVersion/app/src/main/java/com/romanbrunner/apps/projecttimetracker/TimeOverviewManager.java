@@ -1,7 +1,9 @@
 package com.romanbrunner.apps.projecttimetracker;
 
+import android.content.Context;
 import android.graphics.Color;
 import android.widget.ImageButton;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import com.github.mikephil.charting.charts.LineChart;
@@ -28,9 +30,9 @@ import java.util.Set;
 import java.util.TreeMap;
 
 /**
- * Manager class for time overview chart logic.
+ * Manager class for time overview logic.
  */
-public class TimeOverviewChartManager {
+public class TimeOverviewManager {
     // Constants:
     private static final int SECONDS_PER_HOUR = 3600;
     private static final float LINE_WIDTH = 2f;
@@ -46,6 +48,7 @@ public class TimeOverviewChartManager {
         WEEK, MONTH, YEAR, FULL
     }
 
+    private final Context context;
     private final LineChart chart;
     private final TimeEntryRepository timeEntryRepository;
     private final ImageButton btnTimePrev;
@@ -54,7 +57,8 @@ public class TimeOverviewChartManager {
     private TimeRangeMode timeRangeMode = TimeRangeMode.WEEK;
     private int currentTimeOffset = 0;
 
-    public TimeOverviewChartManager(LineChart chart, TimeEntryRepository timeEntryRepository, ImageButton btnTimePrev, ImageButton btnTimeNext, TextView tvTimeRangeLabel) {
+    public TimeOverviewManager(Context context, LineChart chart, TimeEntryRepository timeEntryRepository, ImageButton btnTimePrev, ImageButton btnTimeNext, TextView tvTimeRangeLabel) {
+        this.context = context;
         this.chart = chart;
         this.timeEntryRepository = timeEntryRepository;
         this.btnTimePrev = btnTimePrev;
@@ -84,6 +88,39 @@ public class TimeOverviewChartManager {
         leftAxis.setAxisMinimum(0f);
         YAxis rightAxis = chart.getAxisRight();
         rightAxis.setEnabled(false);
+    }
+
+    public void setupClickListeners() {
+        tvTimeRangeLabel.setOnClickListener(v -> showTimeRangeModePopup());
+        btnTimePrev.setOnClickListener(v -> navigateTimePrevious());
+        btnTimeNext.setOnClickListener(v -> navigateTimeNext());
+    }
+
+    public void showTimeRangeModePopup() {
+        PopupMenu popup = new PopupMenu(context, tvTimeRangeLabel);
+        popup.getMenu().add(0, 0, 0, R.string.time_range_week);
+        popup.getMenu().add(0, 1, 1, R.string.time_range_month);
+        popup.getMenu().add(0, 2, 2, R.string.time_range_year);
+        popup.getMenu().add(0, 3, 3, R.string.time_range_full);
+        popup.setOnMenuItemClickListener(item -> {
+            switch (item.getItemId()) {
+                case 0:
+                    setTimeRangeMode(TimeRangeMode.WEEK);
+                    return true;
+                case 1:
+                    setTimeRangeMode(TimeRangeMode.MONTH);
+                    return true;
+                case 2:
+                    setTimeRangeMode(TimeRangeMode.YEAR);
+                    return true;
+                case 3:
+                    setTimeRangeMode(TimeRangeMode.FULL);
+                    return true;
+                default:
+                    return false;
+            }
+        });
+        popup.show();
     }
 
     public void loadChartData() {
@@ -123,7 +160,7 @@ public class TimeOverviewChartManager {
                 String weekStart = weekFormat.format(labelCalendar.getTime());
                 labelCalendar.add(Calendar.DAY_OF_YEAR, 6);
                 String weekEnd = weekFormat.format(labelCalendar.getTime());
-                rangeLabel = weekStart + " - " + weekEnd;
+                rangeLabel = "Week: " + weekStart + " - " + weekEnd;
                 break;
             case MONTH:
                 calendar.set(Calendar.DAY_OF_MONTH, 1);
@@ -134,7 +171,7 @@ public class TimeOverviewChartManager {
                 rangeEnd = getDayEnd(calendar.getTime());
                 xAxisFormat = "d";
                 SimpleDateFormat monthFormat = new SimpleDateFormat("MMMM yyyy", Locale.getDefault());
-                rangeLabel = monthFormat.format(rangeStart);
+                rangeLabel = "Month: " + monthFormat.format(rangeStart);
                 break;
             case YEAR:
                 calendar.set(Calendar.DAY_OF_YEAR, 1);
@@ -145,7 +182,7 @@ public class TimeOverviewChartManager {
                 rangeEnd = getDayEnd(calendar.getTime());
                 xAxisFormat = "MMM";
                 SimpleDateFormat yearFormat = new SimpleDateFormat("yyyy", Locale.getDefault());
-                rangeLabel = yearFormat.format(rangeStart);
+                rangeLabel = "Year: " + yearFormat.format(rangeStart);
                 break;
             case FULL:
             default:
@@ -170,12 +207,12 @@ public class TimeOverviewChartManager {
                 rangeEnd = getDayEnd(latestDate);
                 xAxisFormat = "dd.MM.yy";
                 SimpleDateFormat fullFormat = new SimpleDateFormat("dd.MM.yy", Locale.getDefault());
-                rangeLabel = fullFormat.format(rangeStart) + " - " + fullFormat.format(rangeEnd);
+                rangeLabel = "Full: " + fullFormat.format(rangeStart) + " - " + fullFormat.format(rangeEnd);
                 btnTimePrev.setEnabled(false);
                 btnTimeNext.setEnabled(false);
                 break;
         }
-        tvTimeRangeLabel.setText(rangeLabel);
+        tvTimeRangeLabel.setText(rangeLabel + " ▼");
         if (timeRangeMode != TimeRangeMode.FULL) {
             btnTimePrev.setEnabled(true);
             btnTimeNext.setEnabled(true);
@@ -259,6 +296,14 @@ public class TimeOverviewChartManager {
         int colorIndex = 0;
         for (String category : categories) {
             TreeMap<Integer, Long> dataMap = categoryData.get(category);
+            // Skip categories with no hours in the current time range:
+            long totalSeconds = 0;
+            for (Long seconds : dataMap.values()) {
+                totalSeconds += seconds;
+            }
+            if (totalSeconds == 0) {
+                continue;
+            }
             List<Entry> entries = new ArrayList<>();
             for (Map.Entry<Integer, Long> dataEntry : dataMap.entrySet()) {
                 float hours;

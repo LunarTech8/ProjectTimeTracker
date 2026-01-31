@@ -31,8 +31,8 @@ public class ReminderReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         // Create notification channel (required for Android O+):
         createNotificationChannel(context);
-        // Trigger flashing in MainActivity if app is active:
-        MainActivity.triggerFlashIfActive();
+        // Trigger flashing in ControlPanelManager if app is active:
+        ControlPanelManager.triggerFlashIfActive();
         // Play beeps:
         playBeeps(context);
         // Vibrate:

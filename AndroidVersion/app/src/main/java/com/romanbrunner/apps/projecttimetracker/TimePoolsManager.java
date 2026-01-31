@@ -32,9 +32,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Manager class for category pool functionality.
+ * Manager class for time pool functionality.
  */
-public class CategoryPoolsManager {
+public class TimePoolsManager {
     // Constants:
     private static final int SECONDS_PER_MINUTE = 60;
 
@@ -44,7 +44,7 @@ public class CategoryPoolsManager {
     private final TimeEntryRepository timeEntryRepository;
     private PoolAdapter poolAdapter;
 
-    public CategoryPoolsManager(Context context, RecyclerView rvPools, DailyTimePoolRepository dailyTimePoolRepository, TimeEntryRepository timeEntryRepository) {
+    public TimePoolsManager(Context context, RecyclerView rvPools, DailyTimePoolRepository dailyTimePoolRepository, TimeEntryRepository timeEntryRepository) {
         this.context = context;
         this.rvPools = rvPools;
         this.dailyTimePoolRepository = dailyTimePoolRepository;
