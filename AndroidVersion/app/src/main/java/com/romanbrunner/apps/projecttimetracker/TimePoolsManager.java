@@ -34,7 +34,8 @@ import java.util.Set;
 /**
  * Manager class for time pool functionality.
  */
-public class TimePoolsManager {
+public class TimePoolsManager
+{
     // Constants:
     private static final int SECONDS_PER_MINUTE = 60;
 
@@ -44,69 +45,87 @@ public class TimePoolsManager {
     private final TimeEntryRepository timeEntryRepository;
     private PoolAdapter poolAdapter;
 
-    public TimePoolsManager(Context context, RecyclerView rvPools, DailyTimePoolRepository dailyTimePoolRepository, TimeEntryRepository timeEntryRepository) {
+    public TimePoolsManager(Context context, RecyclerView rvPools, DailyTimePoolRepository dailyTimePoolRepository, TimeEntryRepository timeEntryRepository)
+    {
         this.context = context;
         this.rvPools = rvPools;
         this.dailyTimePoolRepository = dailyTimePoolRepository;
         this.timeEntryRepository = timeEntryRepository;
     }
 
-    public void setupRecyclerView() {
+    public void setupRecyclerView()
+    {
         poolAdapter = new PoolAdapter(getPoolData());
         rvPools.setLayoutManager(new LinearLayoutManager(context));
         rvPools.setAdapter(poolAdapter);
     }
 
-    public void refreshPoolsData() {
-        if (poolAdapter != null) {
+    public void refreshPoolsData()
+    {
+        if (poolAdapter != null)
+        {
             poolAdapter.updateData(getPoolData());
         }
     }
 
-    public void loadPoolsFromFile(Uri uri) {
-        try {
+    public void loadPoolsFromFile(Uri uri)
+    {
+        try
+        {
             InputStream inputStream = context.getContentResolver().openInputStream(uri);
-            if (inputStream != null) {
+            if (inputStream != null)
+            {
                 dailyTimePoolRepository.importFromTextFile(inputStream);
                 inputStream.close();
                 refreshPoolsData();
                 Toast.makeText(context, "Pools loaded successfully", Toast.LENGTH_SHORT).show();
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             Toast.makeText(context, "Error loading file: " + e.getMessage(), Toast.LENGTH_LONG).show();
             e.printStackTrace();
         }
     }
 
-    public void savePoolsToFile(Uri uri) {
-        try {
+    public void savePoolsToFile(Uri uri)
+    {
+        try
+        {
             OutputStream outputStream = context.getContentResolver().openOutputStream(uri);
-            if (outputStream != null) {
+            if (outputStream != null)
+            {
                 dailyTimePoolRepository.exportToTextFile(outputStream);
                 outputStream.close();
                 Toast.makeText(context, "Pools saved successfully", Toast.LENGTH_SHORT).show();
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             Toast.makeText(context, "Error saving file: " + e.getMessage(), Toast.LENGTH_LONG).show();
             e.printStackTrace();
         }
     }
 
-    public void showRemoveCategoryDialog() {
+    public void showRemoveCategoryDialog()
+    {
         List<String> categories = new ArrayList<>(dailyTimePoolRepository.getCategories());
-        if (categories.isEmpty()) {
+        if (categories.isEmpty())
+        {
             Toast.makeText(context, "No categories to remove", Toast.LENGTH_SHORT).show();
             return;
         }
         String[] categoryArray = categories.toArray(new String[0]);
         new AlertDialog.Builder(context)
                 .setTitle(R.string.remove_category)
-                .setItems(categoryArray, (dialog, which) -> {
+                .setItems(categoryArray, (dialog, which) ->
+                {
                     String categoryToRemove = categoryArray[which];
                     new AlertDialog.Builder(context)
                             .setTitle(R.string.confirm_delete)
                             .setMessage("Remove category \"" + categoryToRemove + "\"?")
-                            .setPositiveButton(R.string.delete, (d, w) -> {
+                            .setPositiveButton(R.string.delete, (d, w) ->
+                            {
                                 timeEntryRepository.removeEntriesByCategory(categoryToRemove);
                                 dailyTimePoolRepository.removeCategory(categoryToRemove);
                                 refreshPoolsData();
@@ -119,22 +138,28 @@ public class TimePoolsManager {
                 .show();
     }
 
-    public void showAddCategoryDialog() {
+    public void showAddCategoryDialog()
+    {
         View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_add_category, null);
         TextInputEditText etCategory = dialogView.findViewById(R.id.et_category_name);
         TextInputEditText etDailyMinutes = dialogView.findViewById(R.id.et_daily_minutes);
         new AlertDialog.Builder(context)
                 .setTitle(R.string.add_category)
                 .setView(dialogView)
-                .setPositiveButton(R.string.add, (dialog, which) -> {
+                .setPositiveButton(R.string.add, (dialog, which) ->
+                {
                     String category = etCategory.getText() != null ? etCategory.getText().toString().trim() : "";
                     String minutesStr = etDailyMinutes.getText() != null ? etDailyMinutes.getText().toString() : "0";
                     int minutes = 0;
-                    try {
+                    try
+                    {
                         minutes = Integer.parseInt(minutesStr);
-                    } catch (NumberFormatException e) {
                     }
-                    if (!category.isEmpty()) {
+                    catch (NumberFormatException e)
+                    {
+                    }
+                    if (!category.isEmpty())
+                    {
                         dailyTimePoolRepository.setDailyMinutes(category, minutes);
                         refreshPoolsData();
                     }
@@ -143,12 +168,14 @@ public class TimePoolsManager {
                 .show();
     }
 
-    private List<CategoryPoolData> getPoolData() {
+    private List<CategoryPoolData> getPoolData()
+    {
         Set<String> allCategories = new HashSet<>();
         allCategories.addAll(dailyTimePoolRepository.getCategories());
         allCategories.addAll(timeEntryRepository.getAllCategories());
         List<CategoryPoolData> data = new ArrayList<>();
-        for (String category : allCategories) {
+        for (String category : allCategories)
+        {
             int dailyMinutes = dailyTimePoolRepository.getDailyMinutes(category);
             long totalSeconds = timeEntryRepository.getTotalDurationForCategory(category);
             long poolSeconds = calculatePoolTime(category, dailyMinutes);
@@ -158,8 +185,10 @@ public class TimePoolsManager {
         return data;
     }
 
-    private long calculatePoolTime(String category, int dailyMinutes) {
-        if (dailyMinutes <= 0) {
+    private long calculatePoolTime(String category, int dailyMinutes)
+    {
+        if (dailyMinutes <= 0)
+        {
             return 0;
         }
         Date earliestDate = timeEntryRepository.getEarliestStartDateForCategory(category);
@@ -169,13 +198,15 @@ public class TimePoolsManager {
         return poolSeconds - usedSeconds;
     }
 
-    private static class CategoryPoolData {
+    private static class CategoryPoolData
+    {
         String category;
         int dailyMinutes;
         long poolSeconds;
         long totalSeconds;
 
-        CategoryPoolData(String category, int dailyMinutes, long poolSeconds, long totalSeconds) {
+        CategoryPoolData(String category, int dailyMinutes, long poolSeconds, long totalSeconds)
+        {
             this.category = category;
             this.dailyMinutes = dailyMinutes;
             this.poolSeconds = poolSeconds;
@@ -183,40 +214,48 @@ public class TimePoolsManager {
         }
     }
 
-    private class PoolAdapter extends RecyclerView.Adapter<PoolAdapter.ViewHolder> {
+    private class PoolAdapter extends RecyclerView.Adapter<PoolAdapter.ViewHolder>
+    {
         private List<CategoryPoolData> data;
 
-        PoolAdapter(List<CategoryPoolData> data) {
+        PoolAdapter(List<CategoryPoolData> data)
+        {
             this.data = new ArrayList<>(data);
         }
 
-        void updateData(List<CategoryPoolData> newData) {
+        void updateData(List<CategoryPoolData> newData)
+        {
             this.data = new ArrayList<>(newData);
             notifyDataSetChanged();
         }
 
         @NonNull
         @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.item_category_pool, parent, false);
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType)
+        {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_category_pool, parent, false);
             return new ViewHolder(view);
         }
 
         @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position)
+        {
             CategoryPoolData item = data.get(position);
             holder.tvCategory.setText(item.category);
             holder.etDailyMinutes.removeTextChangedListener(holder.textWatcher);
             holder.etDailyMinutes.setText(String.valueOf(item.dailyMinutes));
             holder.tvPoolTime.setText(TimeUtils.formatDuration(Math.abs(item.poolSeconds)));
-            if (item.poolSeconds >= 0) {
+            if (item.poolSeconds >= 0)
+            {
                 holder.tvPoolTime.setTextColor(context.getResources().getColor(R.color.pool_positive, null));
-            } else {
+            }
+            else
+            {
                 holder.tvPoolTime.setTextColor(context.getResources().getColor(R.color.pool_negative, null));
             }
             holder.tvTotalTime.setText(TimeUtils.formatDuration(item.totalSeconds));
-            holder.textWatcher = new TextWatcher() {
+            holder.textWatcher = new TextWatcher()
+            {
                 @Override
                 public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
@@ -224,18 +263,25 @@ public class TimePoolsManager {
                 public void onTextChanged(CharSequence s, int start, int before, int count) {}
 
                 @Override
-                public void afterTextChanged(Editable s) {
+                public void afterTextChanged(Editable s)
+                {
                     int minutes = 0;
-                    try {
+                    try
+                    {
                         minutes = Integer.parseInt(s.toString());
-                    } catch (NumberFormatException e) {
+                    }
+                    catch (NumberFormatException e)
+                    {
                     }
                     dailyTimePoolRepository.setDailyMinutes(item.category, minutes);
                     long newPoolSeconds = calculatePoolTime(item.category, minutes);
                     holder.tvPoolTime.setText(TimeUtils.formatDuration(Math.abs(newPoolSeconds)));
-                    if (newPoolSeconds >= 0) {
+                    if (newPoolSeconds >= 0)
+                    {
                         holder.tvPoolTime.setTextColor(context.getResources().getColor(R.color.pool_positive, null));
-                    } else {
+                    }
+                    else
+                    {
                         holder.tvPoolTime.setTextColor(context.getResources().getColor(R.color.pool_negative, null));
                     }
                 }
@@ -244,16 +290,19 @@ public class TimePoolsManager {
         }
 
         @Override
-        public int getItemCount() {
+        public int getItemCount()
+        {
             return data.size();
         }
 
-        class ViewHolder extends RecyclerView.ViewHolder {
+        class ViewHolder extends RecyclerView.ViewHolder
+        {
             TextView tvCategory, tvPoolTime, tvTotalTime;
             EditText etDailyMinutes;
             TextWatcher textWatcher;
 
-            ViewHolder(View itemView) {
+            ViewHolder(View itemView)
+            {
                 super(itemView);
                 tvCategory = itemView.findViewById(R.id.tv_pool_category);
                 etDailyMinutes = itemView.findViewById(R.id.et_pool_daily_minutes);

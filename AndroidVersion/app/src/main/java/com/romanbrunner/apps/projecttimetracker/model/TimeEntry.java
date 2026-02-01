@@ -6,18 +6,21 @@ import java.util.Date;
 /**
  * Time entry for tracking project time.
  */
-public class TimeEntry implements Serializable {
+public class TimeEntry implements Serializable
+{
     private String project;
     private String category;
     private long durationSeconds;
     private Date startTime;
     private String id;
 
-    public TimeEntry() {
+    public TimeEntry()
+    {
         this.id = java.util.UUID.randomUUID().toString();
     }
 
-    public TimeEntry(String project, String category, long durationSeconds, Date startTime) {
+    public TimeEntry(String project, String category, long durationSeconds, Date startTime)
+    {
         this();
         this.project = project;
         this.category = category;
@@ -26,48 +29,59 @@ public class TimeEntry implements Serializable {
     }
 
     // Getters and Setters:
-    public String getId() {
+    public String getId()
+    {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(String id)
+    {
         this.id = id;
     }
 
-    public String getProject() {
+    public String getProject()
+    {
         return project;
     }
 
-    public void setProject(String project) {
+    public void setProject(String project)
+    {
         this.project = project;
     }
 
-    public String getCategory() {
+    public String getCategory()
+    {
         return category;
     }
 
-    public void setCategory(String category) {
+    public void setCategory(String category)
+    {
         this.category = category;
     }
 
-    public long getDurationSeconds() {
+    public long getDurationSeconds()
+    {
         return durationSeconds;
     }
 
-    public void setDurationSeconds(long durationSeconds) {
+    public void setDurationSeconds(long durationSeconds)
+    {
         this.durationSeconds = durationSeconds;
     }
 
-    public Date getStartTime() {
+    public Date getStartTime()
+    {
         return startTime;
     }
 
-    public void setStartTime(Date startTime) {
+    public void setStartTime(Date startTime)
+    {
         this.startTime = startTime;
     }
 
     @Override
-    public String toString() {
+    public String toString()
+    {
         return "TimeEntry{" +
                 "project='" + project + '\'' +
                 ", category='" + category + '\'' +

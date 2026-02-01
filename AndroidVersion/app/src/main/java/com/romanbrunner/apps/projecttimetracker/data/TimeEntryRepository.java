@@ -1,7 +1,6 @@
 package com.romanbrunner.apps.projecttimetracker.data;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -28,71 +27,88 @@ import java.util.Set;
 /**
  * Repository for time entry data persistence.
  */
-public class TimeEntryRepository {
+public class TimeEntryRepository
+{
+    // Constants:
     private static final String FIELD_SEPARATOR = " --- ";
-    // Python format: %Y-%m-%d %H:%M:%S.%f:
     private static final String PYTHON_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
 
     private final PreferencesManager preferencesManager;
     private final Gson gson;
     private List<TimeEntry> entries;
 
-    public TimeEntryRepository(Context context) {
+    public TimeEntryRepository(Context context)
+    {
         preferencesManager = new PreferencesManager(context);
         gson = new Gson();
         loadEntries();
     }
 
-    private void loadEntries() {
+    private void loadEntries()
+    {
         String json = preferencesManager.getTimeEntriesJson();
-        if (json != null) {
+        if (json != null)
+        {
             Type type = new TypeToken<ArrayList<TimeEntry>>(){}.getType();
             entries = gson.fromJson(json, type);
-            if (entries == null) {
+            if (entries == null)
+            {
                 entries = new ArrayList<>();
             }
-        } else {
+        }
+        else
+        {
             entries = new ArrayList<>();
         }
     }
 
-    private void saveEntries() {
+    private void saveEntries()
+    {
         String json = gson.toJson(entries);
         preferencesManager.setTimeEntriesJson(json);
     }
 
-    public List<TimeEntry> getAllEntries() {
+    public List<TimeEntry> getAllEntries()
+    {
         return new ArrayList<>(entries);
     }
 
-    public void addEntry(TimeEntry entry) {
+    public void addEntry(TimeEntry entry)
+    {
         entries.add(entry);
         saveEntries();
     }
 
-    public void removeEntry(String entryId) {
+    public void removeEntry(String entryId)
+    {
         entries.removeIf(e -> e.getId().equals(entryId));
         saveEntries();
     }
 
-    public void removeEntry(int index) {
-        if (index >= 0 && index < entries.size()) {
+    public void removeEntry(int index)
+    {
+        if (index >= 0 && index < entries.size())
+        {
             entries.remove(index);
             saveEntries();
         }
     }
 
-    public void removeEntriesByCategory(String category) {
+    public void removeEntriesByCategory(String category)
+    {
         entries.removeIf(e -> category.equals(e.getCategory()));
         saveEntries();
     }
 
-    public int getEntryCount() {
+    public int getEntryCount()
+    {
         return entries.size();
     }
 
-    public TimeEntry getEntry(int index) {
-        if (index >= 0 && index < entries.size()) {
+    public TimeEntry getEntry(int index)
+    {
+        if (index >= 0 && index < entries.size())
+        {
             return entries.get(index);
         }
         return null;
@@ -101,11 +117,14 @@ public class TimeEntryRepository {
     /**
      * Gets all unique projects from entries.
      */
-    public Set<String> getAllProjects() {
+    public Set<String> getAllProjects()
+    {
         Set<String> projects = new HashSet<>();
-        projects.add("ProjectTimeTracker"); // Default project:
-        for (TimeEntry entry : entries) {
-            if (entry.getProject() != null && !entry.getProject().isEmpty()) {
+        projects.add("ProjectTimeTracker");
+        for (TimeEntry entry : entries)
+        {
+            if (entry.getProject() != null && !entry.getProject().isEmpty())
+            {
                 projects.add(entry.getProject());
             }
         }
@@ -115,11 +134,14 @@ public class TimeEntryRepository {
     /**
      * Gets all unique categories from entries.
      */
-    public Set<String> getAllCategories() {
+    public Set<String> getAllCategories()
+    {
         Set<String> categories = new HashSet<>();
-        categories.add("Programming"); // Default category:
-        for (TimeEntry entry : entries) {
-            if (entry.getCategory() != null && !entry.getCategory().isEmpty()) {
+        categories.add("Programming");
+        for (TimeEntry entry : entries)
+        {
+            if (entry.getCategory() != null && !entry.getCategory().isEmpty())
+            {
                 categories.add(entry.getCategory());
             }
         }
@@ -129,15 +151,19 @@ public class TimeEntryRepository {
     /**
      * Gets projects filtered by category.
      */
-    public Set<String> getProjectsForCategory(String category) {
+    public Set<String> getProjectsForCategory(String category)
+    {
         Set<String> projects = new HashSet<>();
-        for (TimeEntry entry : entries) {
-            if (category.equals(entry.getCategory())) {
+        for (TimeEntry entry : entries)
+        {
+            if (category.equals(entry.getCategory()))
+            {
                 projects.add(entry.getProject());
             }
         }
         // Only add default if no projects found for this category:
-        if (projects.isEmpty()) {
+        if (projects.isEmpty())
+        {
             projects.add("ProjectTimeTracker");
         }
         return projects;
@@ -146,10 +172,13 @@ public class TimeEntryRepository {
     /**
      * Calculates total duration for a specific project.
      */
-    public long getTotalDurationForProject(String project) {
+    public long getTotalDurationForProject(String project)
+    {
         long total = 0;
-        for (TimeEntry entry : entries) {
-            if (project.equals(entry.getProject())) {
+        for (TimeEntry entry : entries)
+        {
+            if (project.equals(entry.getProject()))
+            {
                 total += entry.getDurationSeconds();
             }
         }
@@ -159,10 +188,13 @@ public class TimeEntryRepository {
     /**
      * Calculates total duration for a specific category.
      */
-    public long getTotalDurationForCategory(String category) {
+    public long getTotalDurationForCategory(String category)
+    {
         long total = 0;
-        for (TimeEntry entry : entries) {
-            if (category.equals(entry.getCategory())) {
+        for (TimeEntry entry : entries)
+        {
+            if (category.equals(entry.getCategory()))
+            {
                 total += entry.getDurationSeconds();
             }
         }
@@ -172,11 +204,15 @@ public class TimeEntryRepository {
     /**
      * Gets the earliest start date for entries in a category.
      */
-    public Date getEarliestStartDateForCategory(String category) {
+    public Date getEarliestStartDateForCategory(String category)
+    {
         Date earliest = new Date();
-        for (TimeEntry entry : entries) {
-            if (category.equals(entry.getCategory()) && entry.getStartTime() != null) {
-                if (entry.getStartTime().before(earliest)) {
+        for (TimeEntry entry : entries)
+        {
+            if (category.equals(entry.getCategory()) && entry.getStartTime() != null)
+            {
+                if (entry.getStartTime().before(earliest))
+                {
                     earliest = entry.getStartTime();
                 }
             }
@@ -186,14 +222,15 @@ public class TimeEntryRepository {
 
     /**
      * Exports entries to a text file in Python format.
-     * Format: PROJECT --- CATEGORY --- DURATION --- START_TIME
-     * DateTime format: yyyy-MM-dd HH:mm:ss.SSS
      */
-    public void exportToTextFile(OutputStream outputStream) throws IOException {
+    public void exportToTextFile(OutputStream outputStream) throws IOException
+    {
         SimpleDateFormat dateFormat = new SimpleDateFormat(PYTHON_DATE_FORMAT, Locale.US);
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream));
-        try {
-            for (TimeEntry entry : entries) {
+        try
+        {
+            for (TimeEntry entry : entries)
+            {
                 String line = entry.getProject() + FIELD_SEPARATOR +
                              entry.getCategory() + FIELD_SEPARATOR +
                              entry.getDurationSeconds() + FIELD_SEPARATOR +
@@ -201,29 +238,34 @@ public class TimeEntryRepository {
                 writer.write(line);
                 writer.newLine();
             }
-        } finally {
+        }
+        finally
+        {
             writer.close();
         }
     }
 
     /**
      * Imports entries from a text file in Python format.
-     * Format: PROJECT --- CATEGORY --- DURATION --- START_TIME
-     * DateTime format: yyyy-MM-dd HH:mm:ss.SSS
      */
-    public void importFromTextFile(InputStream inputStream) throws IOException, ParseException {
+    public void importFromTextFile(InputStream inputStream) throws IOException, ParseException
+    {
         SimpleDateFormat dateFormat = new SimpleDateFormat(PYTHON_DATE_FORMAT, Locale.US);
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
         List<TimeEntry> importedEntries = new ArrayList<>();
-        try {
+        try
+        {
             String line;
-            while ((line = reader.readLine()) != null) {
+            while ((line = reader.readLine()) != null)
+            {
                 line = line.trim();
-                if (line.isEmpty()) {
+                if (line.isEmpty())
+                {
                     continue;
                 }
                 String[] parts = line.split(FIELD_SEPARATOR);
-                if (parts.length >= 4) {
+                if (parts.length >= 4)
+                {
                     String project = parts[0].trim();
                     String category = parts[1].trim();
                     // Parse as double first to handle decimal seconds, then convert to long:
@@ -234,7 +276,9 @@ public class TimeEntryRepository {
                     importedEntries.add(entry);
                 }
             }
-        } finally {
+        }
+        finally
+        {
             reader.close();
         }
         // Replace current entries with imported ones:

@@ -28,7 +28,8 @@ import java.util.List;
 /**
  * Manager class for control panel functionality.
  */
-public class ControlPanelManager {
+public class ControlPanelManager
+{
     // Static reference for callbacks from BroadcastReceiver:
     private static ControlPanelManager currentInstance;
 
@@ -38,11 +39,14 @@ public class ControlPanelManager {
     private static final int REMINDER_REQUEST_CODE = 1000;
     private static final int FLASH_DURATION = 3000;
     private static final int FLASH_INTERVAL = 250;
+    private static final int SECONDS_PER_MINUTE = 60;
+    private static final int MILLIS_PER_SECOND = 1000;
 
     /**
      * Callback interface for control panel events.
      */
-    public interface OnControlPanelEventListener {
+    public interface OnControlPanelEventListener
+    {
         void onEntryEnded();
         void onTimerStateChanged();
     }
@@ -53,7 +57,7 @@ public class ControlPanelManager {
     private final PreferencesManager preferencesManager;
     private final AlarmManager alarmManager;
 
-    // UI Components
+    // UI Components:
     private final Button btnStartStop;
     private final Button btnReset;
     private final Button btnEnd;
@@ -66,7 +70,7 @@ public class ControlPanelManager {
     private final TextView tvPoolTime;
     private final TextView tvStartDate;
 
-    // State
+    // State:
     private Date firstStartDatetime = null;
     private Date currentStartDatetime = null;
     private long accumulatedDurationSeconds = 0;
@@ -77,28 +81,37 @@ public class ControlPanelManager {
     private Date flashUntilDatetime = null;
     private boolean isInitialSetup = true;
 
-    // Handler for periodic updates
+    // Handler for periodic updates:
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private final Runnable updateRunnable = new Runnable() {
+    private final Runnable updateRunnable = new Runnable()
+    {
         @Override
-        public void run() {
-            if (isRunning && !isPaused) {
+        public void run()
+        {
+            if (isRunning && !isPaused)
+            {
                 updateCurrentDuration();
             }
             handler.postDelayed(this, UPDATE_INTERVAL);
         }
     };
 
-    private final Runnable flashRunnable = new Runnable() {
+    private final Runnable flashRunnable = new Runnable()
+    {
         @Override
-        public void run() {
-            if (flashUntilDatetime != null && new Date().before(flashUntilDatetime)) {
+        public void run()
+        {
+            if (flashUntilDatetime != null && new Date().before(flashUntilDatetime))
+            {
                 toggleFlash();
                 handler.postDelayed(this, FLASH_INTERVAL);
-            } else {
+            }
+            else
+            {
                 flashUntilDatetime = null;
                 // Reset to default text color:
-                if (tvCurrentDuration != null) {
+                if (tvCurrentDuration != null)
+                {
                     tvCurrentDuration.setTextColor(tvStartDate.getCurrentTextColor());
                 }
             }
@@ -107,8 +120,10 @@ public class ControlPanelManager {
 
     private OnControlPanelEventListener listener;
 
-    public static void triggerFlashIfActive() {
-        if (currentInstance != null) {
+    public static void triggerFlashIfActive()
+    {
+        if (currentInstance != null)
+        {
             currentInstance.handler.post(() -> currentInstance.startFlashing());
         }
     }
@@ -128,7 +143,8 @@ public class ControlPanelManager {
                                TextView tvTotalProjectDuration,
                                TextView tvTotalCategoryDuration,
                                TextView tvPoolTime,
-                               TextView tvStartDate) {
+                               TextView tvStartDate)
+    {
         this.context = context;
         this.timeEntryRepository = timeEntryRepository;
         this.dailyTimePoolRepository = dailyTimePoolRepository;
@@ -147,11 +163,13 @@ public class ControlPanelManager {
         this.tvStartDate = tvStartDate;
     }
 
-    public void setOnControlPanelEventListener(OnControlPanelEventListener listener) {
+    public void setOnControlPanelEventListener(OnControlPanelEventListener listener)
+    {
         this.listener = listener;
     }
 
-    public void initialize() {
+    public void initialize()
+    {
         setupButtonListeners();
         setupSpinners();
         updateSpinnerData();
@@ -162,13 +180,15 @@ public class ControlPanelManager {
         handler.post(updateRunnable);
     }
 
-    public void onDestroy() {
+    public void onDestroy()
+    {
         handler.removeCallbacks(updateRunnable);
         handler.removeCallbacks(flashRunnable);
         cancelReminderAlarm();
     }
 
-    public void onResume() {
+    public void onResume()
+    {
         currentInstance = this;
         // Preserve current spinner values across pause/resume:
         String currentCategory = spinnerCategory.getText().toString();
@@ -176,55 +196,58 @@ public class ControlPanelManager {
         updatePoolTime();
         updateSpinnerData();
         // Restore the values that were entered before pause (even if not in dropdown list):
-        if (!currentCategory.isEmpty()) {
+        if (!currentCategory.isEmpty())
+        {
             spinnerCategory.setText(currentCategory, false);
         }
-        if (!currentProject.isEmpty()) {
+        if (!currentProject.isEmpty())
+        {
             spinnerProject.setText(currentProject, false);
         }
     }
 
-    public void onPause() {
+    public void onPause()
+    {
         currentInstance = null;
     }
 
-    private void setupButtonListeners() {
+    private void setupButtonListeners()
+    {
         btnStartStop.setOnClickListener(v -> onStartStopClicked());
         btnReset.setOnClickListener(v -> onResetClicked());
         btnEnd.setOnClickListener(v -> onEndClicked());
     }
 
-    private void setupSpinners() {
+    private void setupSpinners()
+    {
         // Reminder interval spinner:
         String[] reminderChoices = new String[REMINDER_INTERVAL_CHOICES.length];
-        for (int i = 0; i < REMINDER_INTERVAL_CHOICES.length; i++) {
+        for (int i = 0; i < REMINDER_INTERVAL_CHOICES.length; i++)
+        {
             reminderChoices[i] = String.valueOf(REMINDER_INTERVAL_CHOICES[i]);
         }
-        ArrayAdapter<String> reminderAdapter = new ArrayAdapter<>(context,
-                android.R.layout.simple_dropdown_item_1line, reminderChoices);
+        ArrayAdapter<String> reminderAdapter = new ArrayAdapter<>(context, android.R.layout.simple_dropdown_item_1line, reminderChoices);
         spinnerReminder.setAdapter(reminderAdapter);
         spinnerReminder.setText(reminderChoices[0], false);
-        spinnerReminder.setOnItemClickListener((parent, view, position, id) -> {
-            updateReminderInterval();
-        });
+        spinnerReminder.setOnItemClickListener((parent, view, position, id) -> updateReminderInterval());
         // Handle custom input when focus is lost:
-        spinnerReminder.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
-                updateReminderInterval();
-            }
-        });
+        spinnerReminder.setOnFocusChangeListener((v, hasFocus) -> { if (!hasFocus) updateReminderInterval(); });
         // Project and category spinners:
-        spinnerProject.setOnItemClickListener((parent, view, position, id) -> {
+        spinnerProject.setOnItemClickListener((parent, view, position, id) ->
+        {
             String selectedProject = spinnerProject.getText().toString();
-            if (!isInitialSetup) {
+            if (!isInitialSetup)
+            {
                 preferencesManager.setLastProject(selectedProject);
             }
             updateTotalDurations();
             updatePoolTime();
         });
-        spinnerCategory.setOnItemClickListener((parent, view, position, id) -> {
+        spinnerCategory.setOnItemClickListener((parent, view, position, id) ->
+        {
             String selectedCategory = spinnerCategory.getText().toString();
-            if (!isInitialSetup) {
+            if (!isInitialSetup)
+            {
                 preferencesManager.setLastCategory(selectedCategory);
             }
             updateProjectsForCategory();
@@ -233,102 +256,128 @@ public class ControlPanelManager {
         });
     }
 
-    private void updateReminderInterval() {
-        try {
+    private void updateReminderInterval()
+    {
+        try
+        {
             String text = spinnerReminder.getText().toString().trim();
-            if (!text.isEmpty()) {
+            if (!text.isEmpty())
+            {
                 int minutes = Integer.parseInt(text);
-                reminderIntervalSeconds = minutes * 60;
+                reminderIntervalSeconds = minutes * SECONDS_PER_MINUTE;
                 preferencesManager.setLastReminder(minutes);
                 updateNextReminder();
             }
-        } catch (NumberFormatException e) {
+        }
+        catch (NumberFormatException e)
+        {
             Toast.makeText(context, "Invalid reminder interval", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void restoreReminderInterval() {
+    private void restoreReminderInterval()
+    {
         int lastReminder = preferencesManager.getLastReminder();
-        if (lastReminder > 0) {
+        if (lastReminder > 0)
+        {
             spinnerReminder.setText(String.valueOf(lastReminder), false);
-            reminderIntervalSeconds = lastReminder * 60;
+            reminderIntervalSeconds = lastReminder * SECONDS_PER_MINUTE;
             updateNextReminder();
         }
     }
 
-    public void updateSpinnerData() {
+    public void updateSpinnerData()
+    {
         // Categories (set up first):
         List<String> categories = new ArrayList<>(timeEntryRepository.getAllCategories());
         categories.addAll(dailyTimePoolRepository.getCategories());
         List<String> uniqueCategories = new ArrayList<>(new java.util.HashSet<>(categories));
         Collections.sort(uniqueCategories);
-        ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(context,
-                android.R.layout.simple_dropdown_item_1line, uniqueCategories);
+        ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(context, android.R.layout.simple_dropdown_item_1line, uniqueCategories);
         spinnerCategory.setAdapter(categoryAdapter);
-        if (spinnerCategory.getText().toString().isEmpty() && !uniqueCategories.isEmpty()) {
+        if (spinnerCategory.getText().toString().isEmpty() && !uniqueCategories.isEmpty())
+        {
             String lastCategory = preferencesManager.getLastCategory();
-            if (!lastCategory.isEmpty() && uniqueCategories.contains(lastCategory)) {
+            if (!lastCategory.isEmpty() && uniqueCategories.contains(lastCategory))
+            {
                 spinnerCategory.setText(lastCategory, false);
-            } else {
+            }
+            else
+            {
                 spinnerCategory.setText(uniqueCategories.get(0), false);
             }
         }
         updateProjectsForCategory();
     }
 
-    private void updateProjectsForCategory() {
+    private void updateProjectsForCategory()
+    {
         String category = spinnerCategory.getText().toString();
         List<String> projects = new ArrayList<>(timeEntryRepository.getProjectsForCategory(category));
         Collections.sort(projects);
-        ArrayAdapter<String> projectAdapter = new ArrayAdapter<>(context,
-                android.R.layout.simple_dropdown_item_1line, projects);
+        ArrayAdapter<String> projectAdapter = new ArrayAdapter<>(context, android.R.layout.simple_dropdown_item_1line, projects);
         String currentProject = spinnerProject.getText().toString();
         spinnerProject.setAdapter(projectAdapter);
-        if (!projects.isEmpty()) {
-            if (currentProject.isEmpty() || !projects.contains(currentProject)) {
-                if (isInitialSetup) {
+        if (!projects.isEmpty())
+        {
+            if (currentProject.isEmpty() || !projects.contains(currentProject))
+            {
+                if (isInitialSetup)
+                {
                     String lastProject = preferencesManager.getLastProject();
-                    if (!lastProject.isEmpty() && projects.contains(lastProject)) {
+                    if (!lastProject.isEmpty() && projects.contains(lastProject))
+                    {
                         spinnerProject.setText(lastProject, false);
                         return;
                     }
                 }
                 String projectWithMostTime = projects.get(0);
                 long maxDuration = 0;
-                for (String project : projects) {
+                for (String project : projects)
+                {
                     long duration = timeEntryRepository.getTotalDurationForProject(project);
-                    if (duration > maxDuration) {
+                    if (duration > maxDuration)
+                    {
                         maxDuration = duration;
                         projectWithMostTime = project;
                     }
                 }
                 spinnerProject.setText(projectWithMostTime, false);
-            } else {
+            }
+            else
+            {
                 spinnerProject.setText(currentProject, false);
             }
         }
     }
 
-    private void onStartStopClicked() {
-        if (!isRunning) {
+    private void onStartStopClicked()
+    {
+        if (!isRunning)
+        {
             // Start:
             isRunning = true;
             isPaused = false;
             currentStartDatetime = new Date();
-            if (firstStartDatetime == null) {
+            if (firstStartDatetime == null)
+            {
                 firstStartDatetime = currentStartDatetime;
                 tvStartDate.setText(TimeUtils.formatDateTimeForDisplay(firstStartDatetime));
             }
             btnStartStop.setText(R.string.pause);
             updateNextReminder();
-        } else if (!isPaused) {
+        }
+        else if (!isPaused)
+        {
             // Pause:
             isPaused = true;
             accumulatedDurationSeconds += getCurrentSessionSeconds();
             currentStartDatetime = null;
             cancelReminderAlarm();
             btnStartStop.setText(R.string.resume);
-        } else {
+        }
+        else
+        {
             // Resume:
             isPaused = false;
             currentStartDatetime = new Date();
@@ -339,8 +388,10 @@ public class ControlPanelManager {
         notifyTimerStateChanged();
     }
 
-    private void onResetClicked() {
-        if (firstStartDatetime == null) {
+    private void onResetClicked()
+    {
+        if (firstStartDatetime == null)
+        {
             return;
         }
         resetState();
@@ -349,11 +400,14 @@ public class ControlPanelManager {
         notifyTimerStateChanged();
     }
 
-    private void onEndClicked() {
-        if (firstStartDatetime == null) {
+    private void onEndClicked()
+    {
+        if (firstStartDatetime == null)
+        {
             return;
         }
-        if (currentStartDatetime != null) {
+        if (currentStartDatetime != null)
+        {
             accumulatedDurationSeconds += getCurrentSessionSeconds();
         }
         TimeEntry entry = new TimeEntry(
@@ -370,7 +424,8 @@ public class ControlPanelManager {
         notifyEntryEnded();
     }
 
-    private void resetState() {
+    private void resetState()
+    {
         cancelReminderAlarm();
         firstStartDatetime = null;
         currentStartDatetime = null;
@@ -384,59 +439,72 @@ public class ControlPanelManager {
         updateButtonVisibility();
     }
 
-    private void updateButtonVisibility() {
+    private void updateButtonVisibility()
+    {
         boolean timerActive = isRunning || isPaused;
         btnReset.setVisibility(timerActive ? View.VISIBLE : View.GONE);
         btnEnd.setVisibility(timerActive ? View.VISIBLE : View.GONE);
     }
 
-    private long getCurrentSessionSeconds() {
-        if (currentStartDatetime == null) {
+    private long getCurrentSessionSeconds()
+    {
+        if (currentStartDatetime == null)
+        {
             return 0;
         }
-        return (new Date().getTime() - currentStartDatetime.getTime()) / 1000;
+        return (new Date().getTime() - currentStartDatetime.getTime()) / MILLIS_PER_SECOND;
     }
 
-    public long getTotalCurrentDurationSeconds() {
+    public long getTotalCurrentDurationSeconds()
+    {
         return accumulatedDurationSeconds + getCurrentSessionSeconds();
     }
 
-    public boolean isRunning() {
+    public boolean isRunning()
+    {
         return isRunning;
     }
 
-    public String getSelectedCategory() {
+    public String getSelectedCategory()
+    {
         return spinnerCategory.getText().toString();
     }
 
-    public String getSelectedProject() {
+    public String getSelectedProject()
+    {
         return spinnerProject.getText().toString();
     }
 
-    public Date getFirstStartDatetime() {
+    public Date getFirstStartDatetime()
+    {
         return firstStartDatetime;
     }
 
-    private void updateCurrentDuration() {
+    private void updateCurrentDuration()
+    {
         long totalSeconds = getTotalCurrentDurationSeconds();
         tvCurrentDuration.setText(TimeUtils.formatDuration(totalSeconds));
         updateTotalDurations();
         updatePoolTime();
-        if (nextReminderSeconds > 0 && reminderIntervalSeconds > 0 && totalSeconds >= nextReminderSeconds) {
+        if (nextReminderSeconds > 0 && reminderIntervalSeconds > 0 && totalSeconds >= nextReminderSeconds)
+        {
             nextReminderSeconds += reminderIntervalSeconds;
-            long delayMillis = (nextReminderSeconds - totalSeconds) * 1000;
-            if (delayMillis > 0) {
+            long delayMillis = (nextReminderSeconds - totalSeconds) * MILLIS_PER_SECOND;
+            if (delayMillis > 0)
+            {
                 scheduleReminderAlarm(delayMillis);
             }
         }
     }
 
-    public void updateTotalDurations() {
+    public void updateTotalDurations()
+    {
         String project = spinnerProject.getText().toString();
         String category = spinnerCategory.getText().toString();
         long totalProject = timeEntryRepository.getTotalDurationForProject(project);
         long totalCategory = timeEntryRepository.getTotalDurationForCategory(category);
-        if (isRunning) {
+        if (isRunning)
+        {
             totalProject += getTotalCurrentDurationSeconds();
             totalCategory += getTotalCurrentDurationSeconds();
         }
@@ -444,66 +512,87 @@ public class ControlPanelManager {
         tvTotalCategoryDuration.setText(TimeUtils.formatDuration(totalCategory));
     }
 
-    private String formatPoolTimeDisplay(long poolSeconds) {
-        if (poolSeconds == 0) {
+    private String formatPoolTimeDisplay(long poolSeconds)
+    {
+        if (poolSeconds == 0)
+        {
             return "-";
         }
         String timeStr = TimeUtils.formatDuration(Math.abs(poolSeconds));
         return poolSeconds < 0 ? "-" + timeStr : timeStr;
     }
 
-    private void setPoolTimeDisplay(TextView textView, long poolSeconds) {
+    private void setPoolTimeDisplay(TextView textView, long poolSeconds)
+    {
         textView.setText(formatPoolTimeDisplay(poolSeconds));
-        if (poolSeconds == 0) {
+        if (poolSeconds == 0)
+        {
             textView.setTextColor(tvStartDate.getCurrentTextColor());
-        } else if (poolSeconds >= 0) {
+        }
+        else if (poolSeconds >= 0)
+        {
             textView.setTextColor(context.getResources().getColor(R.color.pool_positive, null));
-        } else {
+        }
+        else
+        {
             textView.setTextColor(context.getResources().getColor(R.color.pool_negative, null));
         }
     }
 
-    public void updatePoolTime() {
+    public void updatePoolTime()
+    {
         String category = spinnerCategory.getText().toString();
         int dailyMinutes = dailyTimePoolRepository.getDailyMinutes(category);
-        if (dailyMinutes <= 0) {
+        if (dailyMinutes <= 0)
+        {
             setPoolTimeDisplay(tvPoolTime, 0);
             return;
         }
         Date earliestDate = timeEntryRepository.getEarliestStartDateForCategory(category);
-        if (firstStartDatetime != null && firstStartDatetime.before(earliestDate)) {
+        if (firstStartDatetime != null && firstStartDatetime.before(earliestDate))
+        {
             earliestDate = firstStartDatetime;
         }
         int days = TimeUtils.daysBetween(earliestDate, new Date());
-        long poolSeconds = (long)dailyMinutes * 60 * days;
+        long poolSeconds = (long)dailyMinutes * SECONDS_PER_MINUTE * days;
         long usedSeconds = timeEntryRepository.getTotalDurationForCategory(category);
-        if (isRunning && category.equals(spinnerCategory.getText().toString())) {
+        if (isRunning && category.equals(spinnerCategory.getText().toString()))
+        {
             usedSeconds += getTotalCurrentDurationSeconds();
         }
         long remainingSeconds = poolSeconds - usedSeconds;
         setPoolTimeDisplay(tvPoolTime, remainingSeconds);
     }
 
-    private void updateNextReminder() {
+    private void updateNextReminder()
+    {
         cancelReminderAlarm();
-        if (reminderIntervalSeconds > 0 && isRunning && !isPaused) {
+        if (reminderIntervalSeconds > 0 && isRunning && !isPaused)
+        {
             long currentSeconds = getTotalCurrentDurationSeconds();
             nextReminderSeconds = (int)((currentSeconds / reminderIntervalSeconds) + 1) * reminderIntervalSeconds;
-            long delayMillis = (nextReminderSeconds - currentSeconds) * 1000;
-            if (delayMillis > 0) {
+            long delayMillis = (nextReminderSeconds - currentSeconds) * MILLIS_PER_SECOND;
+            if (delayMillis > 0)
+            {
                 scheduleReminderAlarm(delayMillis);
             }
-        } else {
+        }
+        else
+        {
             nextReminderSeconds = 0;
         }
     }
 
-    private void scheduleReminderAlarm(long delayMillis) {
-        if (alarmManager == null || reminderIntervalSeconds <= 0) {
+    private void scheduleReminderAlarm(long delayMillis)
+    {
+        if (alarmManager == null || reminderIntervalSeconds <= 0)
+        {
             return;
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (!alarmManager.canScheduleExactAlarms()) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+        {
+            if (!alarmManager.canScheduleExactAlarms())
+            {
                 Toast.makeText(context, "Exact alarm permission needed for reminders", Toast.LENGTH_LONG).show();
                 return;
             }
@@ -523,8 +612,10 @@ public class ControlPanelManager {
         );
     }
 
-    private void cancelReminderAlarm() {
-        if (alarmManager == null) {
+    private void cancelReminderAlarm()
+    {
+        if (alarmManager == null)
+        {
             return;
         }
         Intent intent = new Intent(context, ReminderReceiver.class);
@@ -537,13 +628,16 @@ public class ControlPanelManager {
         alarmManager.cancel(pendingIntent);
     }
 
-    public void startFlashing() {
+    public void startFlashing()
+    {
         flashUntilDatetime = new Date(System.currentTimeMillis() + FLASH_DURATION);
         handler.post(flashRunnable);
     }
 
-    private void toggleFlash() {
-        if (tvCurrentDuration == null || tvStartDate == null) {
+    private void toggleFlash()
+    {
+        if (tvCurrentDuration == null || tvStartDate == null)
+        {
             return;
         }
         int currentColor = tvCurrentDuration.getCurrentTextColor();
@@ -552,14 +646,18 @@ public class ControlPanelManager {
         tvCurrentDuration.setTextColor(currentColor == flashColor ? normalColor : flashColor);
     }
 
-    private void notifyEntryEnded() {
-        if (listener != null) {
+    private void notifyEntryEnded()
+    {
+        if (listener != null)
+        {
             listener.onEntryEnded();
         }
     }
 
-    private void notifyTimerStateChanged() {
-        if (listener != null) {
+    private void notifyTimerStateChanged()
+    {
+        if (listener != null)
+        {
             listener.onTimerStateChanged();
         }
     }

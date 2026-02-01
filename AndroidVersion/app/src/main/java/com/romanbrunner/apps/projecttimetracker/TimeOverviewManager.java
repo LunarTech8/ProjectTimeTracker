@@ -32,9 +32,11 @@ import java.util.TreeMap;
 /**
  * Manager class for time overview logic.
  */
-public class TimeOverviewManager {
+public class TimeOverviewManager
+{
     // Constants:
     private static final int SECONDS_PER_HOUR = 3600;
+    private static final int MONTHS_PER_YEAR = 12;
     private static final float LINE_WIDTH = 2f;
     private static final float CIRCLE_RADIUS = 3f;
     private static final int DAYS_PER_MONTH_PERIOD = 4;
@@ -43,8 +45,10 @@ public class TimeOverviewManager {
     private static final int WEEK_MAX_INDEX = 6;
     private static final int YEAR_LABEL_SKIP = 2;
     private static final int FULL_LABEL_SKIP = 3;
+    private static final int MAX_PERIOD_SEARCH = 52;
 
-    public enum TimeRangeMode {
+    public enum TimeRangeMode
+    {
         WEEK, MONTH, YEAR, FULL
     }
 
@@ -57,7 +61,8 @@ public class TimeOverviewManager {
     private TimeRangeMode timeRangeMode = TimeRangeMode.WEEK;
     private int currentTimeOffset = 0;
 
-    public TimeOverviewManager(Context context, LineChart chart, TimeEntryRepository timeEntryRepository, ImageButton btnTimePrev, ImageButton btnTimeNext, TextView tvTimeRangeLabel) {
+    public TimeOverviewManager(Context context, LineChart chart, TimeEntryRepository timeEntryRepository, ImageButton btnTimePrev, ImageButton btnTimeNext, TextView tvTimeRangeLabel)
+    {
         this.context = context;
         this.chart = chart;
         this.timeEntryRepository = timeEntryRepository;
@@ -66,7 +71,8 @@ public class TimeOverviewManager {
         this.tvTimeRangeLabel = tvTimeRangeLabel;
     }
 
-    public void setupChart() {
+    public void setupChart()
+    {
         chart.setTouchEnabled(true);
         chart.setDragEnabled(true);
         chart.setScaleEnabled(true);
@@ -90,20 +96,24 @@ public class TimeOverviewManager {
         rightAxis.setEnabled(false);
     }
 
-    public void setupClickListeners() {
+    public void setupClickListeners()
+    {
         tvTimeRangeLabel.setOnClickListener(v -> showTimeRangeModePopup());
         btnTimePrev.setOnClickListener(v -> navigateTimePrevious());
         btnTimeNext.setOnClickListener(v -> navigateTimeNext());
     }
 
-    public void showTimeRangeModePopup() {
+    public void showTimeRangeModePopup()
+    {
         PopupMenu popup = new PopupMenu(context, tvTimeRangeLabel);
         popup.getMenu().add(0, 0, 0, R.string.time_range_week);
         popup.getMenu().add(0, 1, 1, R.string.time_range_month);
         popup.getMenu().add(0, 2, 2, R.string.time_range_year);
         popup.getMenu().add(0, 3, 3, R.string.time_range_full);
-        popup.setOnMenuItemClickListener(item -> {
-            switch (item.getItemId()) {
+        popup.setOnMenuItemClickListener(item ->
+        {
+            switch (item.getItemId())
+            {
                 case 0:
                     setTimeRangeMode(TimeRangeMode.WEEK);
                     return true;
@@ -123,20 +133,24 @@ public class TimeOverviewManager {
         popup.show();
     }
 
-    public void loadChartData() {
+    public void loadChartData()
+    {
         loadChartData(false);
     }
 
-    public void loadChartData(boolean autoNavigateToData) {
+    public void loadChartData(boolean autoNavigateToData)
+    {
         List<TimeEntry> allEntries = timeEntryRepository.getAllEntries();
-        if (allEntries.isEmpty()) {
+        if (allEntries.isEmpty())
+        {
             chart.clear();
             chart.invalidate();
             tvTimeRangeLabel.setText("");
             return;
         }
         Set<String> categories = new HashSet<>();
-        for (TimeEntry entry : allEntries) {
+        for (TimeEntry entry : allEntries)
+        {
             categories.add(entry.getCategory());
         }
         Calendar calendar = Calendar.getInstance();
@@ -144,7 +158,8 @@ public class TimeOverviewManager {
         Date rangeEnd;
         String xAxisFormat;
         String rangeLabel;
-        switch (timeRangeMode) {
+        switch (timeRangeMode)
+        {
             case WEEK:
                 int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
                 int daysFromMonday = (dayOfWeek - Calendar.MONDAY + 7) % 7;
@@ -188,17 +203,22 @@ public class TimeOverviewManager {
             default:
                 Date earliestDate = null;
                 Date latestDate = null;
-                for (TimeEntry entry : allEntries) {
-                    if (entry.getStartTime() != null) {
-                        if (earliestDate == null || entry.getStartTime().before(earliestDate)) {
+                for (TimeEntry entry : allEntries)
+                {
+                    if (entry.getStartTime() != null)
+                    {
+                        if (earliestDate == null || entry.getStartTime().before(earliestDate))
+                        {
                             earliestDate = entry.getStartTime();
                         }
-                        if (latestDate == null || entry.getStartTime().after(latestDate)) {
+                        if (latestDate == null || entry.getStartTime().after(latestDate))
+                        {
                             latestDate = entry.getStartTime();
                         }
                     }
                 }
-                if (earliestDate == null || latestDate == null) {
+                if (earliestDate == null || latestDate == null)
+                {
                     chart.clear();
                     chart.invalidate();
                     return;
@@ -213,16 +233,19 @@ public class TimeOverviewManager {
                 break;
         }
         tvTimeRangeLabel.setText(rangeLabel + " ▼");
-        if (timeRangeMode != TimeRangeMode.FULL) {
+        if (timeRangeMode != TimeRangeMode.FULL)
+        {
             btnTimePrev.setEnabled(true);
             btnTimeNext.setEnabled(true);
         }
         Map<String, TreeMap<Integer, Long>> categoryData = new HashMap<>();
-        for (String category : categories) {
+        for (String category : categories)
+        {
             categoryData.put(category, new TreeMap<>());
         }
         int maxIndex = 0;
-        switch (timeRangeMode) {
+        switch (timeRangeMode)
+        {
             case WEEK:
                 maxIndex = WEEK_MAX_INDEX;
                 break;
@@ -234,21 +257,24 @@ public class TimeOverviewManager {
                 maxIndex = TimeUtils.daysBetween(rangeStart, monthCalendar.getTime()) / DAYS_PER_MONTH_PERIOD;
                 break;
             case YEAR:
-                maxIndex = 11;
+                maxIndex = MONTHS_PER_YEAR - 1;
                 break;
             case FULL:
             default:
                 maxIndex = FULL_MODE_PERIODS - 1;
                 break;
         }
-        for (TimeEntry entry : allEntries) {
+        for (TimeEntry entry : allEntries)
+        {
             if (entry.getStartTime() == null) continue;
-            if (entry.getStartTime().before(rangeStart) || entry.getStartTime().after(rangeEnd)) {
+            if (entry.getStartTime().before(rangeStart) || entry.getStartTime().after(rangeEnd))
+            {
                 continue;
             }
             String category = entry.getCategory();
             int index;
-            switch (timeRangeMode) {
+            switch (timeRangeMode)
+            {
                 case WEEK:
                     index = TimeUtils.daysBetween(rangeStart, entry.getStartTime()) - 1;
                     break;
@@ -260,7 +286,7 @@ public class TimeOverviewManager {
                     entryCalendar.setTime(entry.getStartTime());
                     Calendar startCalendar = Calendar.getInstance();
                     startCalendar.setTime(rangeStart);
-                    index = (entryCalendar.get(Calendar.YEAR) - startCalendar.get(Calendar.YEAR)) * 12 +
+                    index = (entryCalendar.get(Calendar.YEAR) - startCalendar.get(Calendar.YEAR)) * MONTHS_PER_YEAR +
                             (entryCalendar.get(Calendar.MONTH) - startCalendar.get(Calendar.MONTH));
                     break;
                 case FULL:
@@ -274,10 +300,13 @@ public class TimeOverviewManager {
             long currentTotal = dataMap.getOrDefault(index, 0L);
             dataMap.put(index, currentTotal + entry.getDurationSeconds());
         }
-        for (String category : categories) {
+        for (String category : categories)
+        {
             TreeMap<Integer, Long> dataMap = categoryData.get(category);
-            for (int i = 0; i <= maxIndex; i++) {
-                if (!dataMap.containsKey(i)) {
+            for (int i = 0; i <= maxIndex; i++)
+            {
+                if (!dataMap.containsKey(i))
+                {
                     dataMap.put(i, 0L);
                 }
             }
@@ -294,30 +323,41 @@ public class TimeOverviewManager {
             Color.rgb(138, 43, 226),
         };
         int colorIndex = 0;
-        for (String category : categories) {
+        for (String category : categories)
+        {
             TreeMap<Integer, Long> dataMap = categoryData.get(category);
             // Skip categories with no hours in the current time range:
             long totalSeconds = 0;
-            for (Long seconds : dataMap.values()) {
+            for (Long seconds : dataMap.values())
+            {
                 totalSeconds += seconds;
             }
-            if (totalSeconds == 0) {
+            if (totalSeconds == 0)
+            {
                 continue;
             }
             List<Entry> entries = new ArrayList<>();
-            for (Map.Entry<Integer, Long> dataEntry : dataMap.entrySet()) {
+            for (Map.Entry<Integer, Long> dataEntry : dataMap.entrySet())
+            {
                 float hours;
-                if (timeRangeMode == TimeRangeMode.WEEK) {
+                if (timeRangeMode == TimeRangeMode.WEEK)
+                {
                     hours = dataEntry.getValue() / (float)SECONDS_PER_HOUR;
-                } else if (timeRangeMode == TimeRangeMode.MONTH) {
+                }
+                else if (timeRangeMode == TimeRangeMode.MONTH)
+                {
                     hours = dataEntry.getValue() / (float)SECONDS_PER_HOUR / DAYS_PER_MONTH_PERIOD;
-                } else if (timeRangeMode == TimeRangeMode.YEAR) {
+                }
+                else if (timeRangeMode == TimeRangeMode.YEAR)
+                {
                     Calendar monthStart = Calendar.getInstance();
                     monthStart.setTime(rangeStart);
                     monthStart.add(Calendar.MONTH, dataEntry.getKey());
                     int daysInMonth = monthStart.getActualMaximum(Calendar.DAY_OF_MONTH);
                     hours = dataEntry.getValue() / (float)SECONDS_PER_HOUR / daysInMonth;
-                } else {
+                }
+                else
+                {
                     int totalDays = TimeUtils.daysBetween(rangeStart, rangeEnd) + 1;
                     int daysPerPeriod = totalDays / FULL_MODE_PERIODS;
                     if (daysPerPeriod < 1) daysPerPeriod = 1;
@@ -325,7 +365,8 @@ public class TimeOverviewManager {
                 }
                 entries.add(new Entry(dataEntry.getKey(), hours));
             }
-            if (!entries.isEmpty()) {
+            if (!entries.isEmpty())
+            {
                 LineDataSet dataSet = new LineDataSet(entries, category);
                 dataSet.setColor(colors[colorIndex % colors.length]);
                 dataSet.setCircleColor(colors[colorIndex % colors.length]);
@@ -339,28 +380,36 @@ public class TimeOverviewManager {
                 colorIndex++;
             }
         }
-        if (!dataSets.isEmpty()) {
+        if (!dataSets.isEmpty())
+        {
             LineData lineData = new LineData(dataSets.toArray(new LineDataSet[0]));
             chart.setData(lineData);
             final Date finalRangeStart = rangeStart;
             final Date finalRangeEnd = rangeEnd;
             final String finalXAxisFormat = xAxisFormat;
             XAxis xAxis = chart.getXAxis();
-            if (timeRangeMode == TimeRangeMode.WEEK) {
+            if (timeRangeMode == TimeRangeMode.WEEK)
+            {
                 xAxis.setLabelCount(WEEK_DAYS, true);
                 xAxis.setAxisMinimum(0f);
                 xAxis.setAxisMaximum(WEEK_MAX_INDEX);
-            } else {
+            }
+            else
+            {
                 xAxis.resetAxisMinimum();
                 xAxis.resetAxisMaximum();
             }
-            xAxis.setValueFormatter(new ValueFormatter() {
+            xAxis.setValueFormatter(new ValueFormatter()
+            {
                 private SimpleDateFormat dateFormat = new SimpleDateFormat(finalXAxisFormat, Locale.getDefault());
+
                 @Override
-                public String getFormattedValue(float value) {
+                public String getFormattedValue(float value)
+                {
                     Calendar calendar = Calendar.getInstance();
                     calendar.setTime(finalRangeStart);
-                    switch (timeRangeMode) {
+                    switch (timeRangeMode)
+                    {
                         case WEEK:
                             calendar.add(Calendar.DAY_OF_YEAR, (int)value);
                             break;
@@ -369,14 +418,16 @@ public class TimeOverviewManager {
                             int endDay = Math.min(startDay + DAYS_PER_MONTH_PERIOD - 1, calendar.getActualMaximum(Calendar.DAY_OF_MONTH));
                             return startDay + "." + "-" + endDay + ".";
                         case YEAR:
-                            if ((int)value % YEAR_LABEL_SKIP != 0) {
+                            if ((int)value % YEAR_LABEL_SKIP != 0)
+                            {
                                 return "";
                             }
                             calendar.add(Calendar.MONTH, (int)value);
                             break;
                         case FULL:
                         default:
-                            if ((int)value % FULL_LABEL_SKIP != 0) {
+                            if ((int)value % FULL_LABEL_SKIP != 0)
+                            {
                                 return "";
                             }
                             int totalDays = TimeUtils.daysBetween(finalRangeStart, finalRangeEnd) + 1;
@@ -388,9 +439,12 @@ public class TimeOverviewManager {
                             periodStart.add(Calendar.DAY_OF_YEAR, periodIndex * daysPerPeriod);
                             Calendar periodEnd = Calendar.getInstance();
                             periodEnd.setTime(periodStart.getTime());
-                            if (periodIndex == FULL_MODE_PERIODS - 1) {
+                            if (periodIndex == FULL_MODE_PERIODS - 1)
+                            {
                                 periodEnd.setTime(finalRangeEnd);
-                            } else {
+                            }
+                            else
+                            {
                                 periodEnd.add(Calendar.DAY_OF_YEAR, daysPerPeriod - 1);
                             }
                             SimpleDateFormat rangeFormat = new SimpleDateFormat("dd.MM.yy", Locale.getDefault());
@@ -400,34 +454,44 @@ public class TimeOverviewManager {
                 }
             });
             YAxis leftAxis = chart.getAxisLeft();
-            leftAxis.setValueFormatter(new ValueFormatter() {
+            leftAxis.setValueFormatter(new ValueFormatter()
+            {
                 @Override
-                public String getFormattedValue(float value) {
+                public String getFormattedValue(float value)
+                {
                     return String.format(Locale.getDefault(), "%.1fh", value);
                 }
             });
             chart.invalidate();
-        } else {
+        }
+        else
+        {
             chart.clear();
             chart.invalidate();
             // Auto-navigate to nearest period with data if requested and current period is empty:
-            if (autoNavigateToData && timeRangeMode != TimeRangeMode.FULL) {
+            if (autoNavigateToData && timeRangeMode != TimeRangeMode.FULL)
+            {
                 // Check previous periods first (more recent data):
                 boolean foundData = false;
-                for (int offset = -1; offset >= -52; offset--) {
-                    if (hasDataInPeriod(offset)) {
+                for (int offset = -1; offset >= -MAX_PERIOD_SEARCH; offset--)
+                {
+                    if (hasDataInPeriod(offset))
+                    {
                         currentTimeOffset = offset;
                         foundData = true;
-                        loadChartData(false); // Load without auto-navigate to avoid recursion:
+                        loadChartData(false);
                         return;
                     }
                 }
                 // If no data in past, check future periods:
-                if (!foundData) {
-                    for (int offset = 1; offset <= 52; offset++) {
-                        if (hasDataInPeriod(offset)) {
+                if (!foundData)
+                {
+                    for (int offset = 1; offset <= MAX_PERIOD_SEARCH; offset++)
+                    {
+                        if (hasDataInPeriod(offset))
+                        {
                             currentTimeOffset = offset;
-                            loadChartData(false); // Load without auto-navigate to avoid recursion:
+                            loadChartData(false);
                             return;
                         }
                     }
@@ -436,20 +500,25 @@ public class TimeOverviewManager {
         }
     }
 
-    public void setTimeRangeMode(TimeRangeMode mode) {
+    public void setTimeRangeMode(TimeRangeMode mode)
+    {
         timeRangeMode = mode;
         currentTimeOffset = 0;
         // Auto-navigate to nearest period with data when switching modes:
         loadChartData(true);
     }
 
-    public void navigateTimePrevious() {
-        if (timeRangeMode == TimeRangeMode.FULL) {
+    public void navigateTimePrevious()
+    {
+        if (timeRangeMode == TimeRangeMode.FULL)
+        {
             return;
         }
         // Find the next previous period with data (skip empty periods):
-        for (int offset = currentTimeOffset - 1; offset >= -52; offset--) {
-            if (hasDataInPeriod(offset)) {
+        for (int offset = currentTimeOffset - 1; offset >= -MAX_PERIOD_SEARCH; offset--)
+        {
+            if (hasDataInPeriod(offset))
+            {
                 currentTimeOffset = offset;
                 loadChartData();
                 return;
@@ -457,13 +526,17 @@ public class TimeOverviewManager {
         }
     }
 
-    public void navigateTimeNext() {
-        if (timeRangeMode == TimeRangeMode.FULL) {
+    public void navigateTimeNext()
+    {
+        if (timeRangeMode == TimeRangeMode.FULL)
+        {
             return;
         }
         // Find the next future period with data (skip empty periods):
-        for (int offset = currentTimeOffset + 1; offset <= 52; offset++) {
-            if (hasDataInPeriod(offset)) {
+        for (int offset = currentTimeOffset + 1; offset <= MAX_PERIOD_SEARCH; offset++)
+        {
+            if (hasDataInPeriod(offset))
+            {
                 currentTimeOffset = offset;
                 loadChartData();
                 return;
@@ -471,19 +544,23 @@ public class TimeOverviewManager {
         }
     }
 
-    public TimeRangeMode getTimeRangeMode() {
+    public TimeRangeMode getTimeRangeMode()
+    {
         return timeRangeMode;
     }
 
-    private boolean hasDataInPeriod(int offset) {
+    private boolean hasDataInPeriod(int offset)
+    {
         List<TimeEntry> allEntries = timeEntryRepository.getAllEntries();
-        if (allEntries.isEmpty()) {
+        if (allEntries.isEmpty())
+        {
             return false;
         }
         Calendar calendar = Calendar.getInstance();
         Date rangeStart;
         Date rangeEnd;
-        switch (timeRangeMode) {
+        switch (timeRangeMode)
+        {
             case WEEK:
                 int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
                 int daysFromMonday = (dayOfWeek - Calendar.MONDAY + 7) % 7;
@@ -512,18 +589,21 @@ public class TimeOverviewManager {
             default:
                 return false;
         }
-        for (TimeEntry entry : allEntries) {
+        for (TimeEntry entry : allEntries)
+        {
             if (entry.getStartTime() != null &&
                 !entry.getStartTime().before(rangeStart) &&
                 !entry.getStartTime().after(rangeEnd) &&
-                entry.getDurationSeconds() > 0) {
+                entry.getDurationSeconds() > 0)
+            {
                 return true;
             }
         }
         return false;
     }
 
-    private Date getDayEnd(Date date) {
+    private Date getDayEnd(Date date)
+    {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
         calendar.set(Calendar.HOUR_OF_DAY, 23);
@@ -533,7 +613,8 @@ public class TimeOverviewManager {
         return calendar.getTime();
     }
 
-    private Date getDayStart(Date date) {
+    private Date getDayStart(Date date)
+    {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
         calendar.set(Calendar.HOUR_OF_DAY, 0);

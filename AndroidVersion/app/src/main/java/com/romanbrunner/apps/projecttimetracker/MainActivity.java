@@ -28,9 +28,14 @@ import com.romanbrunner.apps.projecttimetracker.util.PreferencesManager;
 /**
  * Main activity for time tracking.
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+{
+    // Constants:
+    private static final int SECTION_PADDING_DP = 24;
+    private static final int SECTION_MARGIN_DP = 8;
+    private static final int VISIBLE_SECTION_COLUMNS = 3;
 
-    // UI Components
+    // UI Components:
     private RecyclerView rvSectionSelector;
     private MaterialCardView cardControlPanel;
     private MaterialCardView cardEntries;
@@ -46,26 +51,27 @@ public class MainActivity extends AppCompatActivity {
     private Button btnRemoveCategoryMain;
     private Button btnAddPoolMain;
 
-    // Managers
+    // Managers:
     private ControlPanelManager controlPanelManager;
     private TimeEntriesManager entriesManager;
     private TimePoolsManager poolsManager;
     private TimeOverviewManager chartManager;
 
-    // File pickers
+    // File pickers:
     private ActivityResultLauncher<String[]> loadEntriesFileLauncher;
     private ActivityResultLauncher<String> saveEntriesFileLauncher;
     private ActivityResultLauncher<String[]> loadPoolsFileLauncher;
     private ActivityResultLauncher<String> savePoolsFileLauncher;
 
-    // Data
+    // Data:
     private TimeEntryRepository timeEntryRepository;
     private DailyTimePoolRepository dailyTimePoolRepository;
     private PreferencesManager preferencesManager;
     private AlarmManager alarmManager;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initializeFilePickers();
@@ -78,24 +84,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onDestroy() {
+    protected void onDestroy()
+    {
         super.onDestroy();
         controlPanelManager.onDestroy();
     }
 
     @Override
-    protected void onResume() {
+    protected void onResume()
+    {
         super.onResume();
         controlPanelManager.onResume();
     }
 
     @Override
-    protected void onPause() {
+    protected void onPause()
+    {
         super.onPause();
         controlPanelManager.onPause();
     }
 
-    private void initializeViews() {
+    private void initializeViews()
+    {
         rvSectionSelector = findViewById(R.id.rv_section_selector);
         cardControlPanel = findViewById(R.id.card_control_panel);
         cardEntries = findViewById(R.id.card_entries);
@@ -111,8 +121,9 @@ public class MainActivity extends AppCompatActivity {
         setupSectionSelector();
     }
 
-    private void initializeManagers() {
-        // Control Panel Manager
+    private void initializeManagers()
+    {
+        // Control Panel Manager:
         controlPanelManager = new ControlPanelManager(
             this,
             timeEntryRepository,
@@ -131,26 +142,29 @@ public class MainActivity extends AppCompatActivity {
             findViewById(R.id.tv_pool_time),
             findViewById(R.id.tv_start_date)
         );
-        controlPanelManager.setOnControlPanelEventListener(new ControlPanelManager.OnControlPanelEventListener() {
+        controlPanelManager.setOnControlPanelEventListener(new ControlPanelManager.OnControlPanelEventListener()
+        {
             @Override
-            public void onEntryEnded() {
+            public void onEntryEnded()
+            {
                 entriesManager.refreshEntryList();
             }
 
             @Override
-            public void onTimerStateChanged() {
+            public void onTimerStateChanged()
+            {
                 // Timer state changed, could refresh UI if needed
             }
         });
         controlPanelManager.initialize();
-
-        // Entries Manager
+        // Entries Manager:
         entriesManager = new TimeEntriesManager(
             this,
             findViewById(R.id.rv_entries),
             timeEntryRepository
         );
-        entriesManager.setOnEntriesChangedListener(() -> {
+        entriesManager.setOnEntriesChangedListener(() ->
+        {
             controlPanelManager.updateSpinnerData();
             controlPanelManager.updateTotalDurations();
             controlPanelManager.updatePoolTime();
@@ -158,8 +172,7 @@ public class MainActivity extends AppCompatActivity {
         entriesManager.setupRecyclerView();
         btnLoadEntries.setOnClickListener(v -> loadEntriesFileLauncher.launch(new String[]{"text/plain"}));
         btnSaveEntries.setOnClickListener(v -> saveEntriesFileLauncher.launch("MetaDataProjectTime.txt"));
-
-        // Pools Manager
+        // Pools Manager:
         RecyclerView rvPoolsMain = findViewById(R.id.rv_pools_main);
         poolsManager = new TimePoolsManager(this, rvPoolsMain, dailyTimePoolRepository, timeEntryRepository);
         poolsManager.setupRecyclerView();
@@ -167,57 +180,42 @@ public class MainActivity extends AppCompatActivity {
         btnSavePoolsMain.setOnClickListener(v -> savePoolsFileLauncher.launch("MetaDataDailyTimePools.txt"));
         btnRemoveCategoryMain.setOnClickListener(v -> poolsManager.showRemoveCategoryDialog());
         btnAddPoolMain.setOnClickListener(v -> poolsManager.showAddCategoryDialog());
-
-        // Chart Manager
+        // Chart Manager:
         LineChart chartMain = findViewById(R.id.chart_main);
         ImageButton btnTimePrevMain = findViewById(R.id.btn_time_prev_main);
         ImageButton btnTimeNextMain = findViewById(R.id.btn_time_next_main);
         chartManager = new TimeOverviewManager(this, chartMain, timeEntryRepository, btnTimePrevMain, btnTimeNextMain, tvTimeRangeLabelMain);
         chartManager.setupChart();
         chartManager.setupClickListeners();
-
         initializePoolsFilePickers();
     }
 
-    private void initializeFilePickers() {
+    private void initializeFilePickers()
+    {
         loadEntriesFileLauncher = registerForActivityResult(
                 new ActivityResultContracts.OpenDocument(),
-                uri -> {
-                    if (uri != null) {
-                        entriesManager.loadEntriesFromFile(uri);
-                    }
-                }
+                uri -> { if (uri != null) entriesManager.loadEntriesFromFile(uri); }
         );
         saveEntriesFileLauncher = registerForActivityResult(
                 new ActivityResultContracts.CreateDocument("text/plain"),
-                uri -> {
-                    if (uri != null) {
-                        entriesManager.saveEntriesToFile(uri);
-                    }
-                }
+                uri -> { if (uri != null) entriesManager.saveEntriesToFile(uri); }
         );
     }
 
-    private void initializePoolsFilePickers() {
+    private void initializePoolsFilePickers()
+    {
         loadPoolsFileLauncher = registerForActivityResult(
                 new ActivityResultContracts.OpenDocument(),
-                uri -> {
-                    if (uri != null) {
-                        poolsManager.loadPoolsFromFile(uri);
-                    }
-                }
+                uri -> { if (uri != null) poolsManager.loadPoolsFromFile(uri); }
         );
         savePoolsFileLauncher = registerForActivityResult(
                 new ActivityResultContracts.CreateDocument("text/plain"),
-                uri -> {
-                    if (uri != null) {
-                        poolsManager.savePoolsToFile(uri);
-                    }
-                }
+                uri -> { if (uri != null) poolsManager.savePoolsToFile(uri); }
         );
     }
 
-    private void setupSectionSelector() {
+    private void setupSectionSelector()
+    {
         String[] sections = {
             getString(R.string.control_header),
             getString(R.string.entries_header),
@@ -226,73 +224,80 @@ public class MainActivity extends AppCompatActivity {
         };
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         int screenWidth = displayMetrics.widthPixels;
-        int paddingPx = (int)(24 * displayMetrics.density);
-        int marginPerItemPx = (int)(8 * displayMetrics.density);
+        int paddingPx = (int)(SECTION_PADDING_DP * displayMetrics.density);
+        int marginPerItemPx = (int)(SECTION_MARGIN_DP * displayMetrics.density);
         int availableWidth = screenWidth - paddingPx;
-        int itemWidth = (availableWidth - (marginPerItemPx * 3)) / 3;
+        int itemWidth = (availableWidth - (marginPerItemPx * VISIBLE_SECTION_COLUMNS)) / VISIBLE_SECTION_COLUMNS;
         sectionSelectorAdapter = new SectionSelectorAdapter(sections, itemWidth);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
         rvSectionSelector.setLayoutManager(layoutManager);
         rvSectionSelector.setAdapter(sectionSelectorAdapter);
     }
 
-    private void showSection(int index) {
+    private void showSection(int index)
+    {
         selectedSectionIndex = index;
         sectionSelectorAdapter.notifyDataSetChanged();
         cardControlPanel.setVisibility(index == 0 ? View.VISIBLE : View.GONE);
         cardEntries.setVisibility(index == 1 ? View.VISIBLE : View.GONE);
         cardPools.setVisibility(index == 2 ? View.VISIBLE : View.GONE);
         cardOverview.setVisibility(index == 3 ? View.VISIBLE : View.GONE);
-        if (index == 2) {
+        if (index == 2)
+        {
             poolsManager.refreshPoolsData();
         }
-        if (index == 3) {
+        if (index == 3)
+        {
             chartManager.loadChartData(true);
         }
     }
 
-    private class SectionSelectorAdapter extends RecyclerView.Adapter<SectionSelectorAdapter.ViewHolder> {
+    private class SectionSelectorAdapter extends RecyclerView.Adapter<SectionSelectorAdapter.ViewHolder>
+    {
         private final String[] sections;
         private final int itemWidth;
 
-        SectionSelectorAdapter(String[] sections, int itemWidth) {
+        SectionSelectorAdapter(String[] sections, int itemWidth)
+        {
             this.sections = sections;
             this.itemWidth = itemWidth;
         }
 
         @NonNull
         @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.item_section_selector, parent, false);
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType)
+        {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_section_selector, parent, false);
             return new ViewHolder(view);
         }
 
         @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position)
+        {
             String section = sections[position];
             holder.textView.setText(section);
             ViewGroup.LayoutParams layoutParams = holder.itemView.getLayoutParams();
             layoutParams.width = itemWidth;
             holder.itemView.setLayoutParams(layoutParams);
             boolean isSelected = position == selectedSectionIndex;
-            int backgroundColor = isSelected ?
-                getResources().getColor(R.color.section_selected, null) :
-                getResources().getColor(R.color.section_unselected, null);
+            int backgroundColor = isSelected ? getResources().getColor(R.color.section_selected, null) : getResources().getColor(R.color.section_unselected, null);
             holder.card.setCardBackgroundColor(backgroundColor);
             holder.itemView.setOnClickListener(v -> showSection(position));
         }
 
         @Override
-        public int getItemCount() {
+        public int getItemCount()
+        {
             return sections.length;
         }
 
-        class ViewHolder extends RecyclerView.ViewHolder {
+        class ViewHolder extends RecyclerView.ViewHolder
+        {
             MaterialCardView card;
             TextView textView;
 
-            ViewHolder(View itemView) {
+            ViewHolder(View itemView)
+            {
                 super(itemView);
                 card = itemView.findViewById(R.id.section_card);
                 textView = itemView.findViewById(R.id.section_text);
