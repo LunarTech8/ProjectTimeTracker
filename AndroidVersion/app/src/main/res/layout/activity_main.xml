@@ -469,6 +469,22 @@
 
                     </LinearLayout>
 
+                    <!-- Reset Time Pools Interval -->
+                    <TextView
+                        android:id="@+id/tv_pool_reset_interval"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/ctp_reset_interval_format"
+                        tools:text="Reset Time Pools: Never ▼"
+                        android:textSize="14sp"
+                        android:textColor="@android:color/white"
+                        android:gravity="center"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackground"
+                        android:padding="8dp"
+                        android:layout_marginBottom="8dp" />
+
                     <!-- Header -->
                     <LinearLayout
                         android:layout_width="match_parent"

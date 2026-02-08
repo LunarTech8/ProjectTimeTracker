@@ -47,6 +47,12 @@
     <string name="ctp_pool_time">Pool Time:</string>
     <string name="ctp_total_time">Total Time:</string>
     <string name="ctp_category_name">Category Name</string>
+    <string name="ctp_reset_interval_format">Reset Time Pools: %1$s ▼</string>
+    <string name="pool_reset_daily">Daily</string>
+    <string name="pool_reset_weekly">Weekly</string>
+    <string name="pool_reset_monthly">Monthly</string>
+    <string name="pool_reset_yearly">Yearly</string>
+    <string name="pool_reset_never">Never</string>
 
     <!-- Dialogs -->
     <string name="confirm_delete">Confirm Delete</string>

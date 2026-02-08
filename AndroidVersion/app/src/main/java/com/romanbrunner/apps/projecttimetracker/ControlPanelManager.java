@@ -21,6 +21,7 @@ import com.romanbrunner.apps.projecttimetracker.util.PreferencesManager;
 import com.romanbrunner.apps.projecttimetracker.util.TimeUtils;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -80,6 +81,7 @@ public class ControlPanelManager
     private boolean isPaused = false;
     private Date flashUntilDatetime = null;
     private boolean isInitialSetup = true;
+    private TimePoolsManager poolsManager = null;
 
     // Handler for periodic updates:
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -166,6 +168,11 @@ public class ControlPanelManager
     public void setOnControlPanelEventListener(OnControlPanelEventListener listener)
     {
         this.listener = listener;
+    }
+
+    public void setPoolsManager(TimePoolsManager poolsManager)
+    {
+        this.poolsManager = poolsManager;
     }
 
     public void initialize()
@@ -488,7 +495,8 @@ public class ControlPanelManager
         updatePoolTime();
         if (nextReminderSeconds > 0 && reminderIntervalSeconds > 0 && totalSeconds >= nextReminderSeconds)
         {
-            nextReminderSeconds += reminderIntervalSeconds;
+            int intervalsPassed = (int)(totalSeconds / reminderIntervalSeconds);
+            nextReminderSeconds = (intervalsPassed + 1) * reminderIntervalSeconds;
             long delayMillis = (nextReminderSeconds - totalSeconds) * MILLIS_PER_SECOND;
             if (delayMillis > 0)
             {
@@ -548,14 +556,28 @@ public class ControlPanelManager
             setPoolTimeDisplay(tvPoolTime, 0);
             return;
         }
-        Date earliestDate = timeEntryRepository.getEarliestStartDateForCategory(category);
-        if (firstStartDatetime != null && firstStartDatetime.before(earliestDate))
+        TimePoolsManager.PoolResetInterval interval = poolsManager != null ? poolsManager.getPoolResetInterval() : TimePoolsManager.PoolResetInterval.NEVER;
+        long poolSeconds;
+        long usedSeconds;
+
+        TimePoolsManager.PeriodCalculation period = TimePoolsManager.calculatePeriod(interval, dailyMinutes);
+        if (period != null)
         {
-            earliestDate = firstStartDatetime;
+            poolSeconds = period.poolSeconds;
+            usedSeconds = timeEntryRepository.getTotalDurationForCategoryInRange(category, period.periodStart, period.periodEnd);
         }
-        int days = TimeUtils.daysBetween(earliestDate, new Date());
-        long poolSeconds = (long)dailyMinutes * SECONDS_PER_MINUTE * days;
-        long usedSeconds = timeEntryRepository.getTotalDurationForCategory(category);
+        else
+        {
+            Date earliestDate = timeEntryRepository.getEarliestStartDateForCategory(category);
+            if (firstStartDatetime != null && firstStartDatetime.before(earliestDate))
+            {
+                earliestDate = firstStartDatetime;
+            }
+            int days = TimeUtils.daysBetween(earliestDate, new Date());
+            poolSeconds = (long)dailyMinutes * SECONDS_PER_MINUTE * days;
+            usedSeconds = timeEntryRepository.getTotalDurationForCategory(category);
+        }
+
         if (isRunning && category.equals(spinnerCategory.getText().toString()))
         {
             usedSeconds += getTotalCurrentDurationSeconds();
@@ -570,7 +592,8 @@ public class ControlPanelManager
         if (reminderIntervalSeconds > 0 && isRunning && !isPaused)
         {
             long currentSeconds = getTotalCurrentDurationSeconds();
-            nextReminderSeconds = (int)((currentSeconds / reminderIntervalSeconds) + 1) * reminderIntervalSeconds;
+            int intervalsPassed = (int)(currentSeconds / reminderIntervalSeconds);
+            nextReminderSeconds = (intervalsPassed + 1) * reminderIntervalSeconds;
             long delayMillis = (nextReminderSeconds - currentSeconds) * MILLIS_PER_SECOND;
             if (delayMillis > 0)
             {

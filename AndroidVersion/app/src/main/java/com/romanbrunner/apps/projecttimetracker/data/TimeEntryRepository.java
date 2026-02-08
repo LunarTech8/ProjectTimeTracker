@@ -202,6 +202,25 @@ public class TimeEntryRepository
     }
 
     /**
+     * Calculates total duration for a category, only counting entries within the given date range.
+     */
+    public long getTotalDurationForCategoryInRange(String category, Date rangeStart, Date rangeEnd)
+    {
+        long total = 0;
+        for (TimeEntry entry : entries)
+        {
+            if (category.equals(entry.getCategory()) && entry.getStartTime() != null)
+            {
+                if (!entry.getStartTime().before(rangeStart) && !entry.getStartTime().after(rangeEnd))
+                {
+                    total += entry.getDurationSeconds();
+                }
+            }
+        }
+        return total;
+    }
+
+    /**
      * Gets the earliest start date for entries in a category.
      */
     public Date getEarliestStartDateForCategory(String category)

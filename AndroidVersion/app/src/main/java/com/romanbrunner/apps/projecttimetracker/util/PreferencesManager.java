@@ -17,6 +17,7 @@ public class PreferencesManager
     private static final String KEY_LAST_CATEGORY = "lastCategory";
     private static final String KEY_LAST_PROJECT = "lastProject";
     private static final String KEY_LAST_REMINDER = "lastReminder";
+    private static final String KEY_POOL_RESET_INTERVAL = "poolResetInterval";
 
     // Repository preference keys:
     private static final String KEY_ENTRIES = "timeEntries";
@@ -62,6 +63,16 @@ public class PreferencesManager
     public void setLastReminder(int reminderMinutes)
     {
         appStatePrefs.edit().putInt(KEY_LAST_REMINDER, reminderMinutes).apply();
+    }
+
+    public String getPoolResetInterval()
+    {
+        return appStatePrefs.getString(KEY_POOL_RESET_INTERVAL, "NEVER");
+    }
+
+    public void setPoolResetInterval(String interval)
+    {
+        appStatePrefs.edit().putString(KEY_POOL_RESET_INTERVAL, interval).apply();
     }
 
     // Time Entries Repository Preferences:

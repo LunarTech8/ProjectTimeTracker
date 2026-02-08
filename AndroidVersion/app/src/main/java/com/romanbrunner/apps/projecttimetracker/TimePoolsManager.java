@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -20,11 +21,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.romanbrunner.apps.projecttimetracker.data.DailyTimePoolRepository;
 import com.romanbrunner.apps.projecttimetracker.data.TimeEntryRepository;
+import com.romanbrunner.apps.projecttimetracker.util.PreferencesManager;
 import com.romanbrunner.apps.projecttimetracker.util.TimeUtils;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -38,19 +41,30 @@ public class TimePoolsManager
 {
     // Constants:
     private static final int SECONDS_PER_MINUTE = 60;
+    public enum PoolResetInterval
+    {
+        DAILY, WEEKLY, MONTHLY, YEARLY, NEVER
+    }
 
     private final Context context;
     private final RecyclerView rvPools;
     private final DailyTimePoolRepository dailyTimePoolRepository;
     private final TimeEntryRepository timeEntryRepository;
+    private final PreferencesManager preferencesManager;
+    private final TextView tvPoolResetInterval;
     private PoolAdapter poolAdapter;
+    private PoolResetInterval poolResetInterval = PoolResetInterval.NEVER;
 
-    public TimePoolsManager(Context context, RecyclerView rvPools, DailyTimePoolRepository dailyTimePoolRepository, TimeEntryRepository timeEntryRepository)
+    public TimePoolsManager(Context context, RecyclerView rvPools, DailyTimePoolRepository dailyTimePoolRepository, TimeEntryRepository timeEntryRepository, PreferencesManager preferencesManager, TextView tvPoolResetInterval)
     {
         this.context = context;
         this.rvPools = rvPools;
         this.dailyTimePoolRepository = dailyTimePoolRepository;
         this.timeEntryRepository = timeEntryRepository;
+        this.preferencesManager = preferencesManager;
+        this.tvPoolResetInterval = tvPoolResetInterval;
+        restorePoolResetInterval();
+        setupResetIntervalDropdown();
     }
 
     public void setupRecyclerView()
@@ -58,6 +72,174 @@ public class TimePoolsManager
         poolAdapter = new PoolAdapter(getPoolData());
         rvPools.setLayoutManager(new LinearLayoutManager(context));
         rvPools.setAdapter(poolAdapter);
+    }
+
+    private void setupResetIntervalDropdown()
+    {
+        tvPoolResetInterval.setOnClickListener(v -> showResetIntervalPopup());
+        updateResetIntervalLabel();
+    }
+
+    private void showResetIntervalPopup()
+    {
+        PopupMenu popup = new PopupMenu(context, tvPoolResetInterval);
+        for (PoolResetInterval interval : PoolResetInterval.values())
+        {
+            int id = interval.ordinal();
+            int titleRes = getIntervalStringResource(interval);
+            popup.getMenu().add(0, id, id, titleRes);
+        }
+
+        popup.setOnMenuItemClickListener(item ->
+        {
+            int id = item.getItemId();
+            if (id >= 0 && id < PoolResetInterval.values().length)
+            {
+                PoolResetInterval selected = PoolResetInterval.values()[id];
+                setPoolResetInterval(selected);
+                return true;
+            }
+            return false;
+        });
+
+        popup.show();
+    }
+
+    private void setPoolResetInterval(PoolResetInterval interval)
+    {
+        poolResetInterval = interval;
+        preferencesManager.setPoolResetInterval(interval.name());
+        updateResetIntervalLabel();
+        refreshPoolsData();
+    }
+
+    private void restorePoolResetInterval()
+    {
+        try
+        {
+            poolResetInterval = PoolResetInterval.valueOf(preferencesManager.getPoolResetInterval());
+        }
+        catch (IllegalArgumentException e)
+        {
+            poolResetInterval = PoolResetInterval.NEVER;
+        }
+    }
+
+    private void updateResetIntervalLabel()
+    {
+        int intervalRes = getIntervalStringResource(poolResetInterval);
+        String intervalName = context.getString(intervalRes);
+        String label = context.getString(R.string.ctp_reset_interval_format, intervalName);
+        tvPoolResetInterval.setText(label);
+    }
+
+    public PoolResetInterval getPoolResetInterval()
+    {
+        return poolResetInterval;
+    }
+
+    /**
+     * Helper to get the string resource ID for a given interval.
+     */
+    private static int getIntervalStringResource(PoolResetInterval interval)
+    {
+        switch (interval)
+        {
+            case DAILY:
+                return R.string.pool_reset_daily;
+            case WEEKLY:
+                return R.string.pool_reset_weekly;
+            case MONTHLY:
+                return R.string.pool_reset_monthly;
+            case YEARLY:
+                return R.string.pool_reset_yearly;
+            case NEVER:
+            default:
+                return R.string.pool_reset_never;
+        }
+    }
+
+    /**
+     * Helper to calculate period bounds and pool size for a given interval.
+     * Returns {periodStart, periodEnd, poolSeconds}
+     */
+    public static class PeriodCalculation
+    {
+        public final Date periodStart;
+        public final Date periodEnd;
+        public final long poolSeconds;
+
+        public PeriodCalculation(Date periodStart, Date periodEnd, long poolSeconds)
+        {
+            this.periodStart = periodStart;
+            this.periodEnd = periodEnd;
+            this.poolSeconds = poolSeconds;
+        }
+    }
+
+    public static PeriodCalculation calculatePeriod(PoolResetInterval interval, int dailyMinutes)
+    {
+        Calendar cal = Calendar.getInstance();
+        Date periodStart;
+        Date periodEnd;
+        long poolSeconds;
+
+        switch (interval)
+        {
+            case DAILY:
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+                periodStart = cal.getTime();
+                cal.add(Calendar.DAY_OF_YEAR, 1);
+                periodEnd = cal.getTime();
+                poolSeconds = (long)dailyMinutes * SECONDS_PER_MINUTE;
+                break;
+            case WEEKLY:
+                int dayOfWeek = cal.get(Calendar.DAY_OF_WEEK);
+                int daysFromMonday = (dayOfWeek - Calendar.MONDAY + 7) % 7;
+                cal.add(Calendar.DAY_OF_YEAR, -daysFromMonday);
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+                periodStart = cal.getTime();
+                cal.add(Calendar.DAY_OF_YEAR, 7);
+                periodEnd = cal.getTime();
+                poolSeconds = (long)dailyMinutes * SECONDS_PER_MINUTE * 7;
+                break;
+            case MONTHLY:
+                cal.set(Calendar.DAY_OF_MONTH, 1);
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+                periodStart = cal.getTime();
+                int daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
+                cal.add(Calendar.MONTH, 1);
+                periodEnd = cal.getTime();
+                poolSeconds = (long)dailyMinutes * SECONDS_PER_MINUTE * daysInMonth;
+                break;
+            case YEARLY:
+                cal.set(Calendar.DAY_OF_YEAR, 1);
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+                periodStart = cal.getTime();
+                int daysInYear = cal.getActualMaximum(Calendar.DAY_OF_YEAR);
+                cal.add(Calendar.YEAR, 1);
+                periodEnd = cal.getTime();
+                poolSeconds = (long)dailyMinutes * SECONDS_PER_MINUTE * daysInYear;
+                break;
+            case NEVER:
+            default:
+                // For NEVER, return null to indicate full history calculation
+                return null;
+        }
+
+        return new PeriodCalculation(periodStart, periodEnd, poolSeconds);
     }
 
     public void refreshPoolsData()
@@ -191,11 +373,22 @@ public class TimePoolsManager
         {
             return 0;
         }
-        Date earliestDate = timeEntryRepository.getEarliestStartDateForCategory(category);
-        int days = TimeUtils.daysBetween(earliestDate, new Date());
-        long poolSeconds = (long)dailyMinutes * SECONDS_PER_MINUTE * days;
-        long usedSeconds = timeEntryRepository.getTotalDurationForCategory(category);
-        return poolSeconds - usedSeconds;
+
+        PeriodCalculation period = calculatePeriod(poolResetInterval, dailyMinutes);
+        if (period != null)
+        {
+            long usedSeconds = timeEntryRepository.getTotalDurationForCategoryInRange(category, period.periodStart, period.periodEnd);
+            return period.poolSeconds - usedSeconds;
+        }
+        else
+        {
+            // NEVER: calculate from earliest entry
+            Date earliestDate = timeEntryRepository.getEarliestStartDateForCategory(category);
+            int days = TimeUtils.daysBetween(earliestDate, new Date());
+            long poolSeconds = (long)dailyMinutes * SECONDS_PER_MINUTE * days;
+            long usedSeconds = timeEntryRepository.getTotalDurationForCategory(category);
+            return poolSeconds - usedSeconds;
+        }
     }
 
     private static class CategoryPoolData

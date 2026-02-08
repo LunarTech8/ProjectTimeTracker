@@ -10,7 +10,11 @@ An Android port of the Project Time Tracker desktop application, built with Java
   - Visual flashing of current time when app is active
   - Notifications for reminder alerts
   - Uses AlarmManager for precise timing in all power states
-- **Daily Time Pools**: Track daily time budgets for categories and view remaining pool time
+  - Accurate reminder recalculation when changing intervals mid-session
+- **Configurable Time Pools**: Track time budgets for categories with flexible reset periods
+  - Dropdown selector for reset intervals: Daily, Weekly, Monthly, Yearly, or Never
+  - Period-based pool calculations (Weekly starts Monday, Monthly uses current month days, etc.)
+  - Pool time synced between Control Panel and Time Pools views
 - **Time Overview Charts**: Visualize time tracking data with interactive line charts
   - Week mode: Shows daily hours for Monday-Sunday
   - Month mode: Shows average daily hours per 4-day period
@@ -115,13 +119,19 @@ The app has four main sections accessible via horizontal scrolling selector:
 
 ### 3. Time Pools
 - **Load/Save Buttons**: Import/export MetaDataDailyTimePools.txt
+- **Reset Interval Dropdown**: Choose how often pools reset (Daily/Weekly/Monthly/Yearly/Never)
+  - Daily: Resets at midnight each day
+  - Weekly: Resets every Monday at midnight
+  - Monthly: Resets on the 1st of each month
+  - Yearly: Resets on January 1st
+  - Never: Pools calculated from earliest entry
 - **Add/Remove Buttons**: Manage categories (removal cascades to delete all associated entries)
 - **Pool Editor**: Table showing:
   - Category name
   - Daily minutes (editable)
   - Pool time remaining/exceeded (color-coded, shows "-" when no budget set, minus sign if negative)
   - Total time spent
-- Changes save automatically
+- Changes save automatically and reset interval persists across sessions
 
 ### 4. Time Overview
 - **Time Range Dropdown**: Click the time range label to switch between Week, Month, Year, and Full views
@@ -198,10 +208,17 @@ The app uses AlarmManager with exact alarm permissions to ensure reminders fire 
 When you select a category, the project dropdown automatically shows only projects that have entries in that category. During app startup, the last selected project is restored. When changing categories during runtime, the project with the most recorded time in that category is automatically selected.
 
 ### Pool Time Calculation
-Pool time = (Daily minutes × Days since first entry) - Total time spent
-- Displayed as "-" if no daily minutes are set for the category
-- Displayed in green if time remaining
-- Displayed in red with minus sign if over budget
+Pool time is calculated based on the selected reset interval:
+- **Daily**: (Daily minutes) - Time spent today
+- **Weekly**: (Daily minutes × 7) - Time spent this week (Monday-Sunday)
+- **Monthly**: (Daily minutes × Days in month) - Time spent this month
+- **Yearly**: (Daily minutes × Days in year) - Time spent this year
+- **Never**: (Daily minutes × Days since first entry) - Total time spent
+
+Display formatting:
+- Shown as "-" if no daily minutes are set for the category
+- Green text if time remaining
+- Red text with minus sign if over budget
 
 ### Time Overview Charts
 The overview section provides visual analysis of time tracking data:

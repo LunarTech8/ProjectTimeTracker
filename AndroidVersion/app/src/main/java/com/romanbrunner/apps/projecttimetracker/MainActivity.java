@@ -174,8 +174,10 @@ public class MainActivity extends AppCompatActivity
         btnSaveEntries.setOnClickListener(v -> saveEntriesFileLauncher.launch("MetaDataProjectTime.txt"));
         // Pools Manager:
         RecyclerView rvPoolsMain = findViewById(R.id.rv_pools_main);
-        poolsManager = new TimePoolsManager(this, rvPoolsMain, dailyTimePoolRepository, timeEntryRepository);
+        TextView tvPoolResetInterval = findViewById(R.id.tv_pool_reset_interval);
+        poolsManager = new TimePoolsManager(this, rvPoolsMain, dailyTimePoolRepository, timeEntryRepository, preferencesManager, tvPoolResetInterval);
         poolsManager.setupRecyclerView();
+        controlPanelManager.setPoolsManager(poolsManager);
         btnLoadPoolsMain.setOnClickListener(v -> loadPoolsFileLauncher.launch(new String[]{"text/plain"}));
         btnSavePoolsMain.setOnClickListener(v -> savePoolsFileLauncher.launch("MetaDataDailyTimePools.txt"));
         btnRemoveCategoryMain.setOnClickListener(v -> poolsManager.showRemoveCategoryDialog());
