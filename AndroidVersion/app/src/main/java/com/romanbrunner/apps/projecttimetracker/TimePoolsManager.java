@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.romanbrunner.apps.projecttimetracker.data.DailyTimePoolRepository;
 import com.romanbrunner.apps.projecttimetracker.data.TimeEntryRepository;
+import com.romanbrunner.apps.projecttimetracker.model.TimeEntry;
 import com.romanbrunner.apps.projecttimetracker.util.PreferencesManager;
 import com.romanbrunner.apps.projecttimetracker.util.TimeUtils;
 
@@ -354,12 +355,12 @@ public class TimePoolsManager
     {
         Set<String> allCategories = new HashSet<>();
         allCategories.addAll(dailyTimePoolRepository.getCategories());
-        allCategories.addAll(timeEntryRepository.getAllCategories());
+        allCategories.addAll(timeEntryRepository.getAllValuesForField(TimeEntry::getCategory, TimeEntryRepository.DEFAULT_CATEGORY));
         List<CategoryPoolData> data = new ArrayList<>();
         for (String category : allCategories)
         {
             int dailyMinutes = dailyTimePoolRepository.getDailyMinutes(category);
-            long totalSeconds = timeEntryRepository.getTotalDurationForCategory(category);
+            long totalSeconds = timeEntryRepository.getTotalDurationForField(category, TimeEntry::getCategory);
             long poolSeconds = calculatePoolTime(category, dailyMinutes);
             data.add(new CategoryPoolData(category, dailyMinutes, poolSeconds, totalSeconds));
         }
@@ -386,7 +387,7 @@ public class TimePoolsManager
             Date earliestDate = timeEntryRepository.getEarliestStartDateForCategory(category);
             int days = TimeUtils.daysBetween(earliestDate, new Date());
             long poolSeconds = (long)dailyMinutes * SECONDS_PER_MINUTE * days;
-            long usedSeconds = timeEntryRepository.getTotalDurationForCategory(category);
+            long usedSeconds = timeEntryRepository.getTotalDurationForField(category, TimeEntry::getCategory);
             return poolSeconds - usedSeconds;
         }
     }

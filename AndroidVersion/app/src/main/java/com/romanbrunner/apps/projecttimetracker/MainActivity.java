@@ -140,7 +140,9 @@ public class MainActivity extends AppCompatActivity
             findViewById(R.id.tv_total_project_duration),
             findViewById(R.id.tv_total_category_duration),
             findViewById(R.id.tv_pool_time),
-            findViewById(R.id.tv_start_date)
+            findViewById(R.id.tv_start_date),
+            findViewById(R.id.btn_sort_category),
+            findViewById(R.id.btn_sort_project)
         );
         controlPanelManager.setOnControlPanelEventListener(new ControlPanelManager.OnControlPanelEventListener()
         {

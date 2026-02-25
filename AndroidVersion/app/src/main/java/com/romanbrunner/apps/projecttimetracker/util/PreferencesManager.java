@@ -16,8 +16,9 @@ public class PreferencesManager
     // App state preference keys:
     private static final String KEY_LAST_CATEGORY = "lastCategory";
     private static final String KEY_LAST_PROJECT = "lastProject";
-    private static final String KEY_LAST_REMINDER = "lastReminder";
+    private static final String KEY_LAST_REMINDER_PREFIX = "lastReminder_";
     private static final String KEY_POOL_RESET_INTERVAL = "poolResetInterval";
+    private static final String KEY_SORT_ORDER_PREFIX = "sortOrder_";
 
     // Repository preference keys:
     private static final String KEY_ENTRIES = "timeEntries";
@@ -55,14 +56,14 @@ public class PreferencesManager
         appStatePrefs.edit().putString(KEY_LAST_PROJECT, project).apply();
     }
 
-    public int getLastReminder()
+    public int getLastReminder(String category)
     {
-        return appStatePrefs.getInt(KEY_LAST_REMINDER, 0);
+        return appStatePrefs.getInt(KEY_LAST_REMINDER_PREFIX + category, 0);
     }
 
-    public void setLastReminder(int reminderMinutes)
+    public void setLastReminder(String category, int reminderMinutes)
     {
-        appStatePrefs.edit().putInt(KEY_LAST_REMINDER, reminderMinutes).apply();
+        appStatePrefs.edit().putInt(KEY_LAST_REMINDER_PREFIX + category, reminderMinutes).apply();
     }
 
     public String getPoolResetInterval()
@@ -73,6 +74,16 @@ public class PreferencesManager
     public void setPoolResetInterval(String interval)
     {
         appStatePrefs.edit().putString(KEY_POOL_RESET_INTERVAL, interval).apply();
+    }
+
+    public String getSortOrder(String spinnerName)
+    {
+        return appStatePrefs.getString(KEY_SORT_ORDER_PREFIX + spinnerName, "ALPHABETICAL");
+    }
+
+    public void setSortOrder(String spinnerName, String sortOrder)
+    {
+        appStatePrefs.edit().putString(KEY_SORT_ORDER_PREFIX + spinnerName, sortOrder).apply();
     }
 
     // Time Entries Repository Preferences:

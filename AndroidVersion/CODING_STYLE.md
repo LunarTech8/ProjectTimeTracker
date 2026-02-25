@@ -50,7 +50,7 @@ createNotificationChannel(context);  // Required for Android O+
 createNotificationChannel(context);
 ```
 
-✅ **No magic numbers** - Use named constants instead of literal numbers, including time conversion factors
+✅ **No magic numbers** - Use named constants instead of literal numbers, including time conversion factors. This also applies to literal values used as strings — use `String.valueOf(CONSTANT)` or reference existing arrays/enums instead.
 ```java
 // Good - named constants:
 private static final int WEEK_MAX_INDEX = 6;
@@ -58,11 +58,13 @@ private static final int SECONDS_PER_MINUTE = 60;
 private static final int MILLIS_PER_SECOND = 1000;
 long poolSeconds = dailyMinutes * SECONDS_PER_MINUTE * days;
 long delayMillis = delaySeconds * MILLIS_PER_SECOND;
+String defaultValue = String.valueOf(CHOICES[0]);
 
 // Bad - magic numbers inline:
 int max = 6;
 long poolSeconds = dailyMinutes * 60 * days;
 long delayMillis = delaySeconds * 1000;
+String defaultValue = "0";
 ```
 
 ✅ **Short class descriptions** - Keep class-level Javadoc brief and to the point

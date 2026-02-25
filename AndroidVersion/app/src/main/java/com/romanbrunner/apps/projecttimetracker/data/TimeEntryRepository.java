@@ -32,6 +32,8 @@ public class TimeEntryRepository
     // Constants:
     private static final String FIELD_SEPARATOR = " --- ";
     private static final String PYTHON_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
+    public static final String DEFAULT_PROJECT = "ProjectTimeTracker";
+    public static final String DEFAULT_CATEGORY = "Programming";
 
     private final PreferencesManager preferencesManager;
     private final Gson gson;
@@ -114,38 +116,19 @@ public class TimeEntryRepository
         return null;
     }
 
-    /**
-     * Gets all unique projects from entries.
-     */
-    public Set<String> getAllProjects()
+    public Set<String> getAllValuesForField(java.util.function.Function<TimeEntry, String> fieldExtractor, String defaultValue)
     {
-        Set<String> projects = new HashSet<>();
-        projects.add("ProjectTimeTracker");
+        Set<String> values = new HashSet<>();
+        values.add(defaultValue);
         for (TimeEntry entry : entries)
         {
-            if (entry.getProject() != null && !entry.getProject().isEmpty())
+            String value = fieldExtractor.apply(entry);
+            if (value != null && !value.isEmpty())
             {
-                projects.add(entry.getProject());
+                values.add(value);
             }
         }
-        return projects;
-    }
-
-    /**
-     * Gets all unique categories from entries.
-     */
-    public Set<String> getAllCategories()
-    {
-        Set<String> categories = new HashSet<>();
-        categories.add("Programming");
-        for (TimeEntry entry : entries)
-        {
-            if (entry.getCategory() != null && !entry.getCategory().isEmpty())
-            {
-                categories.add(entry.getCategory());
-            }
-        }
-        return categories;
+        return values;
     }
 
     /**
@@ -169,31 +152,12 @@ public class TimeEntryRepository
         return projects;
     }
 
-    /**
-     * Calculates total duration for a specific project.
-     */
-    public long getTotalDurationForProject(String project)
+    public long getTotalDurationForField(String value, java.util.function.Function<TimeEntry, String> fieldExtractor)
     {
         long total = 0;
         for (TimeEntry entry : entries)
         {
-            if (project.equals(entry.getProject()))
-            {
-                total += entry.getDurationSeconds();
-            }
-        }
-        return total;
-    }
-
-    /**
-     * Calculates total duration for a specific category.
-     */
-    public long getTotalDurationForCategory(String category)
-    {
-        long total = 0;
-        for (TimeEntry entry : entries)
-        {
-            if (category.equals(entry.getCategory()))
+            if (value.equals(fieldExtractor.apply(entry)))
             {
                 total += entry.getDurationSeconds();
             }
@@ -237,6 +201,25 @@ public class TimeEntryRepository
             }
         }
         return earliest;
+    }
+
+    /**
+     * Gets the latest start date for entries matching a given field value.
+     */
+    public Date getLatestStartDateForField(String value, java.util.function.Function<TimeEntry, String> fieldExtractor)
+    {
+        Date latest = new Date(0);
+        for (TimeEntry entry : entries)
+        {
+            if (value.equals(fieldExtractor.apply(entry)) && entry.getStartTime() != null)
+            {
+                if (entry.getStartTime().after(latest))
+                {
+                    latest = entry.getStartTime();
+                }
+            }
+        }
+        return latest;
     }
 
     /**

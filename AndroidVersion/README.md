@@ -22,7 +22,11 @@ An Android port of the Project Time Tracker desktop application, built with Java
   - Full mode: Shows average daily hours across entire tracking history
   - Smart navigation: Automatically jumps to nearest period with data
   - Empty period skipping: Previous/Next buttons skip periods without entries
-- **Smart Project Selection**: When changing categories, automatically selects the project with the most time
+- **Sort Order for Dropdowns**: Cycle sort order for Category and Project dropdowns independently
+  - Cycles through Alphabetical (Az), Most Used (★), and Last Used (⏱)
+  - Sort buttons match the visual style of the dropdowns (outlined, white text)
+  - Selection resets to first entry of the newly sorted list on each cycle
+  - Sort preferences persist across app restarts
 - **State Persistence**: Category, project, and reminder interval selections persist across app restarts
 - **Category Management**: Add new categories and remove existing ones (with cascade deletion of entries)
 - **Three-Section Interface**: Radio button selector for Control Panel, Time Entries, and Category Time Pools
@@ -31,7 +35,6 @@ An Android port of the Project Time Tracker desktop application, built with Java
 - **Persistent Storage**: Uses SharedPreferences with JSON serialization via centralized PreferencesManager
 - **Material Design**: Modern Android UI with Material 3 components
 - **Category Filtering**: Projects dropdown automatically filters based on selected category
-- **State Persistence**: Category, project, and reminder selections persist across app restarts and when switching apps
 - **No Autocorrect**: Category and project input fields don't show spell-check underlines
 
 ## Data File Compatibility
@@ -101,6 +104,8 @@ The app has four main sections accessible via horizontal scrolling selector:
 - **End Button**: Stop tracking and save entry (appears when timer is active)
 - **Reminder Selector**: Choose or enter custom reminder interval in minutes
 - **Project/Category Dropdowns**: Select or enter project and category (category filters projects)
+  - Sort button next to each dropdown: tap to cycle through Alphabetical (Az), Most Used (★), Last Used (⏱)
+  - Selection resets to first entry of the newly sorted list when sort order changes
 - **Time Displays**:
   - Current entry time (live counter)
   - Category pool time (green = remaining, red = over budget)
@@ -205,7 +210,15 @@ The app uses AlarmManager with exact alarm permissions to ensure reminders fire 
 - If the removed category is currently selected, the selection is automatically reset.
 
 ### Category-Filtered Projects
-When you select a category, the project dropdown automatically shows only projects that have entries in that category. During app startup, the last selected project is restored. When changing categories during runtime, the project with the most recorded time in that category is automatically selected.
+When you select a category, the project dropdown automatically shows only projects that have entries in that category. During app startup, the last selected category and project are restored. When changing categories during runtime, the first project in the current sort order is automatically selected.
+
+### Sort Order for Dropdowns
+Each of the Category and Project dropdowns has a sort button next to it that cycles through three sort modes:
+- **Alphabetical (Az)**: Items sorted A to Z
+- **Most Used (★)**: Items sorted by total tracked time, highest first
+- **Last Used (⏱)**: Items sorted by most recent entry start date, newest first
+
+Changing sort order resets the selection to the first entry in the newly sorted list. Sort preferences are stored per-spinner and persist across sessions.
 
 ### Pool Time Calculation
 Pool time is calculated based on the selected reset interval:

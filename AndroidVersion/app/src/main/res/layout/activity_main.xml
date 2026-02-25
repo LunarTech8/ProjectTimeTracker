@@ -71,36 +71,92 @@
                         android:padding="16dp">
 
                         <!-- Row 1: Category -->
-                        <com.google.android.material.textfield.TextInputLayout
-                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="8dp"
-                            android:hint="@string/cp_category">
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
 
-                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                                android:id="@+id/spinner_category"
-                                android:layout_width="match_parent"
+                            <com.google.android.material.textfield.TextInputLayout
+                                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:inputType="textNoSuggestions" />
+                                android:layout_weight="1"
+                                android:hint="@string/cp_category">
 
-                        </com.google.android.material.textfield.TextInputLayout>
+                                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                                    android:id="@+id/spinner_category"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:inputType="textNoSuggestions" />
+
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <Button
+                                android:id="@+id/btn_sort_category"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="48dp"
+                                android:layout_height="56dp"
+                                android:layout_gravity="bottom"
+                                android:minWidth="0dp"
+                                android:minHeight="0dp"
+                                android:padding="0dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:layout_marginStart="8dp"
+                                android:text="@string/sort_alphabetical"
+                                android:textColor="@android:color/white"
+                                android:textSize="22sp"
+                                app:cornerRadius="4dp"
+                                app:strokeColor="?attr/colorOutline"
+                                android:contentDescription="@string/sort_button_description" />
+
+                        </LinearLayout>
 
                         <!-- Row 2: Project -->
-                        <com.google.android.material.textfield.TextInputLayout
-                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="8dp"
-                            android:hint="@string/cp_project">
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
 
-                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                                android:id="@+id/spinner_project"
-                                android:layout_width="match_parent"
+                            <com.google.android.material.textfield.TextInputLayout
+                                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:inputType="textNoSuggestions" />
+                                android:layout_weight="1"
+                                android:hint="@string/cp_project">
 
-                        </com.google.android.material.textfield.TextInputLayout>
+                                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                                    android:id="@+id/spinner_project"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:inputType="textNoSuggestions" />
+
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <Button
+                                android:id="@+id/btn_sort_project"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="48dp"
+                                android:layout_height="56dp"
+                                android:layout_gravity="bottom"
+                                android:minWidth="0dp"
+                                android:minHeight="0dp"
+                                android:padding="0dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:layout_marginStart="8dp"
+                                android:text="@string/sort_alphabetical"
+                                android:textColor="@android:color/white"
+                                android:textSize="22sp"
+                                app:cornerRadius="4dp"
+                                app:strokeColor="?attr/colorOutline"
+                                android:contentDescription="@string/sort_button_description" />
+
+                        </LinearLayout>
 
                         <!-- Row 3: Reminder -->
                         <com.google.android.material.textfield.TextInputLayout

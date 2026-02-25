@@ -23,8 +23,11 @@ import com.romanbrunner.apps.projecttimetracker.util.TimeUtils;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Manager class for control panel functionality.
@@ -42,6 +45,23 @@ public class ControlPanelManager
     private static final int FLASH_INTERVAL = 250;
     private static final int SECONDS_PER_MINUTE = 60;
     private static final int MILLIS_PER_SECOND = 1000;
+    private enum SortKey
+    {
+        CATEGORY("category"),
+        PROJECT("project");
+
+        final String preferencesKey;
+
+        SortKey(String preferencesKey)
+        {
+            this.preferencesKey = preferencesKey;
+        }
+    }
+
+    public enum SortOrder
+    {
+        ALPHABETICAL, MOST_USED, LAST_USED
+    }
 
     /**
      * Callback interface for control panel events.
@@ -70,6 +90,8 @@ public class ControlPanelManager
     private final TextView tvTotalCategoryDuration;
     private final TextView tvPoolTime;
     private final TextView tvStartDate;
+    private final Button btnSortCategory;
+    private final Button btnSortProject;
 
     // State:
     private Date firstStartDatetime = null;
@@ -82,6 +104,8 @@ public class ControlPanelManager
     private Date flashUntilDatetime = null;
     private boolean isInitialSetup = true;
     private TimePoolsManager poolsManager = null;
+    private SortOrder categorySortOrder = SortOrder.ALPHABETICAL;
+    private SortOrder projectSortOrder = SortOrder.ALPHABETICAL;
 
     // Handler for periodic updates:
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -145,7 +169,9 @@ public class ControlPanelManager
                                TextView tvTotalProjectDuration,
                                TextView tvTotalCategoryDuration,
                                TextView tvPoolTime,
-                               TextView tvStartDate)
+                               TextView tvStartDate,
+                               Button btnSortCategory,
+                               Button btnSortProject)
     {
         this.context = context;
         this.timeEntryRepository = timeEntryRepository;
@@ -163,6 +189,8 @@ public class ControlPanelManager
         this.tvTotalCategoryDuration = tvTotalCategoryDuration;
         this.tvPoolTime = tvPoolTime;
         this.tvStartDate = tvStartDate;
+        this.btnSortCategory = btnSortCategory;
+        this.btnSortProject = btnSortProject;
     }
 
     public void setOnControlPanelEventListener(OnControlPanelEventListener listener)
@@ -177,6 +205,7 @@ public class ControlPanelManager
 
     public void initialize()
     {
+        restoreSortOrders();
         setupButtonListeners();
         setupSpinners();
         updateSpinnerData();
@@ -223,6 +252,8 @@ public class ControlPanelManager
         btnStartStop.setOnClickListener(v -> onStartStopClicked());
         btnReset.setOnClickListener(v -> onResetClicked());
         btnEnd.setOnClickListener(v -> onEndClicked());
+        btnSortCategory.setOnClickListener(v -> cycleSortOrder(SortKey.CATEGORY));
+        btnSortProject.setOnClickListener(v -> cycleSortOrder(SortKey.PROJECT));
     }
 
     private void setupSpinners()
@@ -257,6 +288,7 @@ public class ControlPanelManager
             {
                 preferencesManager.setLastCategory(selectedCategory);
             }
+            restoreReminderInterval();
             updateProjectsForCategory();
             updateTotalDurations();
             updatePoolTime();
@@ -272,7 +304,7 @@ public class ControlPanelManager
             {
                 int minutes = Integer.parseInt(text);
                 reminderIntervalSeconds = minutes * SECONDS_PER_MINUTE;
-                preferencesManager.setLastReminder(minutes);
+                preferencesManager.setLastReminder(spinnerCategory.getText().toString(), minutes);
                 updateNextReminder();
             }
         }
@@ -284,35 +316,139 @@ public class ControlPanelManager
 
     private void restoreReminderInterval()
     {
-        int lastReminder = preferencesManager.getLastReminder();
-        if (lastReminder > 0)
+        String category = spinnerCategory.getText().toString();
+        int lastReminder = preferencesManager.getLastReminder(category);
+        spinnerReminder.setText(String.valueOf(lastReminder > 0 ? lastReminder : REMINDER_INTERVAL_CHOICES[0]), false);
+        reminderIntervalSeconds = lastReminder * SECONDS_PER_MINUTE;
+        updateNextReminder();
+    }
+
+    private SortOrder loadSortOrder(SortKey sortKey)
+    {
+        try
         {
-            spinnerReminder.setText(String.valueOf(lastReminder), false);
-            reminderIntervalSeconds = lastReminder * SECONDS_PER_MINUTE;
-            updateNextReminder();
+            return SortOrder.valueOf(preferencesManager.getSortOrder(sortKey.preferencesKey));
+        }
+        catch (IllegalArgumentException e)
+        {
+            return SortOrder.ALPHABETICAL;
+        }
+    }
+
+    private void restoreSortOrders()
+    {
+        categorySortOrder = loadSortOrder(SortKey.CATEGORY);
+        projectSortOrder = loadSortOrder(SortKey.PROJECT);
+        updateSortButtonLabel(btnSortCategory, categorySortOrder);
+        updateSortButtonLabel(btnSortProject, projectSortOrder);
+    }
+
+    private void cycleSortOrder(SortKey sortKey)
+    {
+        boolean isCategory = (sortKey == SortKey.CATEGORY);
+        SortOrder currentOrder = isCategory ? categorySortOrder : projectSortOrder;
+        SortOrder[] values = SortOrder.values();
+        SortOrder newOrder = values[(currentOrder.ordinal() + 1) % values.length];
+
+        if (isCategory)
+        {
+            categorySortOrder = newOrder;
+        }
+        else
+        {
+            projectSortOrder = newOrder;
+        }
+
+        Button button = isCategory ? btnSortCategory : btnSortProject;
+        MaterialAutoCompleteTextView spinner = isCategory ? spinnerCategory : spinnerProject;
+
+        preferencesManager.setSortOrder(sortKey.preferencesKey, newOrder.name());
+        updateSortButtonLabel(button, newOrder);
+
+        // Clear current selection so updateSpinnerData/updateProjectsForCategory picks the first entry:
+        spinner.setText("", false);
+
+        if (isCategory)
+        {
+            updateSpinnerData();
+        }
+        else
+        {
+            updateProjectsForCategory();
+        }
+    }
+
+    private void updateSortButtonLabel(Button button, SortOrder sortOrder)
+    {
+        int labelRes;
+        switch (sortOrder)
+        {
+            case MOST_USED:
+                labelRes = R.string.sort_most_used;
+                break;
+            case LAST_USED:
+                labelRes = R.string.sort_last_used;
+                break;
+            case ALPHABETICAL:
+            default:
+                labelRes = R.string.sort_alphabetical;
+                break;
+        }
+        button.setText(labelRes);
+    }
+
+    private void sortItems(List<String> items, SortOrder sortOrder, boolean isCategory)
+    {
+        switch (sortOrder)
+        {
+            case MOST_USED:
+                Map<String, Long> durationMap = new HashMap<>();
+                for (String item : items)
+                {
+                    long duration = timeEntryRepository.getTotalDurationForField(
+                        item, isCategory ? TimeEntry::getCategory : TimeEntry::getProject);
+                    durationMap.put(item, duration);
+                }
+                items.sort(Comparator.comparingLong((String item) -> durationMap.getOrDefault(item, 0L)).reversed());
+                break;
+            case LAST_USED:
+                Map<String, Date> lastUsedMap = new HashMap<>();
+                for (String item : items)
+                {
+                    Date lastUsed = timeEntryRepository.getLatestStartDateForField(
+                        item, isCategory ? TimeEntry::getCategory : TimeEntry::getProject);
+                    lastUsedMap.put(item, lastUsed);
+                }
+                items.sort(Comparator.comparing((String item) -> lastUsedMap.getOrDefault(item, new Date(0))).reversed());
+                break;
+            case ALPHABETICAL:
+            default:
+                Collections.sort(items);
+                break;
         }
     }
 
     public void updateSpinnerData()
     {
-        // Categories (set up first):
-        List<String> categories = new ArrayList<>(timeEntryRepository.getAllCategories());
+        List<String> categories = new ArrayList<>(timeEntryRepository.getAllValuesForField(TimeEntry::getCategory, TimeEntryRepository.DEFAULT_CATEGORY));
         categories.addAll(dailyTimePoolRepository.getCategories());
         List<String> uniqueCategories = new ArrayList<>(new java.util.HashSet<>(categories));
-        Collections.sort(uniqueCategories);
+        sortItems(uniqueCategories, categorySortOrder, true);
         ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(context, android.R.layout.simple_dropdown_item_1line, uniqueCategories);
         spinnerCategory.setAdapter(categoryAdapter);
         if (spinnerCategory.getText().toString().isEmpty() && !uniqueCategories.isEmpty())
         {
-            String lastCategory = preferencesManager.getLastCategory();
-            if (!lastCategory.isEmpty() && uniqueCategories.contains(lastCategory))
+            if (isInitialSetup)
             {
-                spinnerCategory.setText(lastCategory, false);
+                String lastCategory = preferencesManager.getLastCategory();
+                if (!lastCategory.isEmpty() && uniqueCategories.contains(lastCategory))
+                {
+                    spinnerCategory.setText(lastCategory, false);
+                    updateProjectsForCategory();
+                    return;
+                }
             }
-            else
-            {
-                spinnerCategory.setText(uniqueCategories.get(0), false);
-            }
+            spinnerCategory.setText(uniqueCategories.get(0), false);
         }
         updateProjectsForCategory();
     }
@@ -321,7 +457,7 @@ public class ControlPanelManager
     {
         String category = spinnerCategory.getText().toString();
         List<String> projects = new ArrayList<>(timeEntryRepository.getProjectsForCategory(category));
-        Collections.sort(projects);
+        sortItems(projects, projectSortOrder, false);
         ArrayAdapter<String> projectAdapter = new ArrayAdapter<>(context, android.R.layout.simple_dropdown_item_1line, projects);
         String currentProject = spinnerProject.getText().toString();
         spinnerProject.setAdapter(projectAdapter);
@@ -338,18 +474,7 @@ public class ControlPanelManager
                         return;
                     }
                 }
-                String projectWithMostTime = projects.get(0);
-                long maxDuration = 0;
-                for (String project : projects)
-                {
-                    long duration = timeEntryRepository.getTotalDurationForProject(project);
-                    if (duration > maxDuration)
-                    {
-                        maxDuration = duration;
-                        projectWithMostTime = project;
-                    }
-                }
-                spinnerProject.setText(projectWithMostTime, false);
+                spinnerProject.setText(projects.get(0), false);
             }
             else
             {
@@ -509,8 +634,8 @@ public class ControlPanelManager
     {
         String project = spinnerProject.getText().toString();
         String category = spinnerCategory.getText().toString();
-        long totalProject = timeEntryRepository.getTotalDurationForProject(project);
-        long totalCategory = timeEntryRepository.getTotalDurationForCategory(category);
+        long totalProject = timeEntryRepository.getTotalDurationForField(project, TimeEntry::getProject);
+        long totalCategory = timeEntryRepository.getTotalDurationForField(category, TimeEntry::getCategory);
         if (isRunning)
         {
             totalProject += getTotalCurrentDurationSeconds();
@@ -575,7 +700,7 @@ public class ControlPanelManager
             }
             int days = TimeUtils.daysBetween(earliestDate, new Date());
             poolSeconds = (long)dailyMinutes * SECONDS_PER_MINUTE * days;
-            usedSeconds = timeEntryRepository.getTotalDurationForCategory(category);
+            usedSeconds = timeEntryRepository.getTotalDurationForField(category, TimeEntry::getCategory);
         }
 
         if (isRunning && category.equals(spinnerCategory.getText().toString()))

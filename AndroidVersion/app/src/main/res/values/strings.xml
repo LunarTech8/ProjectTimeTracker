@@ -37,6 +37,12 @@
     <string name="cp_total_category_time">Total category time</string>
     <string name="cp_start_date">Start date</string>
 
+    <!-- Sort Order Labels -->
+    <string name="sort_alphabetical">Az</string>
+    <string name="sort_most_used">★</string>
+    <string name="sort_last_used">⏱</string>
+    <string name="sort_button_description">Change sort order</string>
+
     <!-- Labels Time Entries -->
     <string name="te_duration">Duration:</string>
     <string name="te_started">Started:</string>
