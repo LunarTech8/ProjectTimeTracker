@@ -142,7 +142,10 @@ public class MainActivity extends AppCompatActivity
             findViewById(R.id.tv_pool_time),
             findViewById(R.id.tv_start_date),
             findViewById(R.id.btn_sort_category),
-            findViewById(R.id.btn_sort_project)
+            findViewById(R.id.btn_sort_project),
+            findViewById(R.id.btn_end_at),
+            findViewById(R.id.row_end_at),
+            findViewById(R.id.spinner_end_at)
         );
         controlPanelManager.setOnControlPanelEventListener(new ControlPanelManager.OnControlPanelEventListener()
         {

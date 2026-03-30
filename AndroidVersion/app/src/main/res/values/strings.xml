@@ -8,6 +8,7 @@
     <string name="resume">Resume</string>
     <string name="reset">Reset</string>
     <string name="end">End</string>
+    <string name="end_at">End at:</string>
     <string name="remove">Remove</string>
     <string name="add">Add</string>
     <string name="cancel">Cancel</string>
@@ -31,6 +32,7 @@
     <string name="cp_category">Category</string>
     <string name="cp_project">Project</string>
     <string name="cp_reminder_minutes">Reminder [min]</string>
+    <string name="cp_end_at_minutes">[min]</string>
     <string name="cp_current_entry_time">Current entry time</string>
     <string name="cp_category_pool_time">Category pool time</string>
     <string name="cp_total_project_time">Total project time</string>

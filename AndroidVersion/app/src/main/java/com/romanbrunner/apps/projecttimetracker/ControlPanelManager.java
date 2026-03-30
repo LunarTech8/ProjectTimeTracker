@@ -10,6 +10,7 @@ import android.os.Looper;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -39,6 +40,7 @@ public class ControlPanelManager
 
     // Constants:
     private static final int[] REMINDER_INTERVAL_CHOICES = {0, 15, 30, 45, 60, 90, 120};
+    private static final int[] END_AT_CHOICES = {5, 15, 30, 45, 60, 90, 120};
     private static final int UPDATE_INTERVAL = 1000;
     private static final int REMINDER_REQUEST_CODE = 1000;
     private static final int FLASH_DURATION = 3000;
@@ -92,6 +94,9 @@ public class ControlPanelManager
     private final TextView tvStartDate;
     private final Button btnSortCategory;
     private final Button btnSortProject;
+    private final Button btnEndAt;
+    private final LinearLayout rowEndAt;
+    private final MaterialAutoCompleteTextView spinnerEndAt;
 
     // State:
     private Date firstStartDatetime = null;
@@ -171,7 +176,10 @@ public class ControlPanelManager
                                TextView tvPoolTime,
                                TextView tvStartDate,
                                Button btnSortCategory,
-                               Button btnSortProject)
+                               Button btnSortProject,
+                               Button btnEndAt,
+                               LinearLayout rowEndAt,
+                               MaterialAutoCompleteTextView spinnerEndAt)
     {
         this.context = context;
         this.timeEntryRepository = timeEntryRepository;
@@ -191,6 +199,9 @@ public class ControlPanelManager
         this.tvStartDate = tvStartDate;
         this.btnSortCategory = btnSortCategory;
         this.btnSortProject = btnSortProject;
+        this.btnEndAt = btnEndAt;
+        this.rowEndAt = rowEndAt;
+        this.spinnerEndAt = spinnerEndAt;
     }
 
     public void setOnControlPanelEventListener(OnControlPanelEventListener listener)
@@ -252,6 +263,7 @@ public class ControlPanelManager
         btnStartStop.setOnClickListener(v -> onStartStopClicked());
         btnReset.setOnClickListener(v -> onResetClicked());
         btnEnd.setOnClickListener(v -> onEndClicked());
+        btnEndAt.setOnClickListener(v -> onEndAtClicked());
         btnSortCategory.setOnClickListener(v -> cycleSortOrder(SortKey.CATEGORY));
         btnSortProject.setOnClickListener(v -> cycleSortOrder(SortKey.PROJECT));
     }
@@ -266,10 +278,21 @@ public class ControlPanelManager
         }
         ArrayAdapter<String> reminderAdapter = new ArrayAdapter<>(context, android.R.layout.simple_dropdown_item_1line, reminderChoices);
         spinnerReminder.setAdapter(reminderAdapter);
+        spinnerReminder.setThreshold(Integer.MAX_VALUE);
         spinnerReminder.setText(reminderChoices[0], false);
         spinnerReminder.setOnItemClickListener((parent, view, position, id) -> updateReminderInterval());
         // Handle custom input when focus is lost:
         spinnerReminder.setOnFocusChangeListener((v, hasFocus) -> { if (!hasFocus) updateReminderInterval(); });
+        // End-at spinner:
+        String[] endAtChoices = new String[END_AT_CHOICES.length];
+        for (int i = 0; i < END_AT_CHOICES.length; i++)
+        {
+            endAtChoices[i] = String.valueOf(END_AT_CHOICES[i]);
+        }
+        ArrayAdapter<String> endAtAdapter = new ArrayAdapter<>(context, android.R.layout.simple_dropdown_item_1line, endAtChoices);
+        spinnerEndAt.setAdapter(endAtAdapter);
+        spinnerEndAt.setThreshold(Integer.MAX_VALUE);
+        spinnerEndAt.setText(endAtChoices[0], false);
         // Project and category spinners:
         spinnerProject.setOnItemClickListener((parent, view, position, id) ->
         {
@@ -556,6 +579,35 @@ public class ControlPanelManager
         notifyEntryEnded();
     }
 
+    private void onEndAtClicked()
+    {
+        if (firstStartDatetime == null)
+        {
+            return;
+        }
+        String text = spinnerEndAt.getText().toString().trim();
+        if (text.isEmpty())
+        {
+            return;
+        }
+        int endAtMinutes = Integer.parseInt(text);
+        if (endAtMinutes <= 0)
+        {
+            return;
+        }
+        timeEntryRepository.addEntry(new TimeEntry(
+                spinnerProject.getText().toString(),
+                spinnerCategory.getText().toString(),
+                (long)endAtMinutes * SECONDS_PER_MINUTE,
+                firstStartDatetime
+        ));
+        resetState();
+        updateSpinnerData();
+        updateTotalDurations();
+        updatePoolTime();
+        notifyEntryEnded();
+    }
+
     private void resetState()
     {
         cancelReminderAlarm();
@@ -576,6 +628,7 @@ public class ControlPanelManager
         boolean timerActive = isRunning || isPaused;
         btnReset.setVisibility(timerActive ? View.VISIBLE : View.GONE);
         btnEnd.setVisibility(timerActive ? View.VISIBLE : View.GONE);
+        rowEndAt.setVisibility(timerActive ? View.VISIBLE : View.GONE);
     }
 
     private long getCurrentSessionSeconds()

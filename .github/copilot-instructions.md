@@ -2,7 +2,7 @@
 
 ## Coding Style
 
-Always follow `AndroidVersion/CODING_STYLE.md` strictly.
+Always follow `CODING_STYLE.md` strictly.
 
 ## Git Commit Message Task
 
